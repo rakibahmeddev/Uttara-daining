@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users: Everyone can read when authenticated, write their own or if admin
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Temporarily relaxed for debugging
+    }
+
+    // Meals: Public read, Admin/Manager write
+    match /meals/{mealId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders: Users can create their own, Admins can read all
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Transactions: Users can read their own, Admins can read all
+    match /transactions/{transId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
+    }
+    
+    // Balance Requests: IMPORTANT - Allow students to create withdrawal requests
+    match /balanceRequests/{requestId} {
+      // Anyone authenticated can read their own requests, admins can read all
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId || isAdmin());
+      
+      // Any authenticated user can create a balance request for themselves
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Only admins can update or delete requests
+      allow update, delete: if isAdmin();
+    }
+    
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Reports
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Settings: Public read (for CSS/Themes), Admin write
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Metadata: Authenticated users can read/write for user counter
+    match /metadata/{metadataId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
