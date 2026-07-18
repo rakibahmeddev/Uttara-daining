@@ -118,7 +118,7 @@ export default function Register() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center relative overflow-hidden py-12"
+      className="min-h-screen flex justify-center relative overflow-hidden py-12"
       style={{
         background: 'var(--bg-base)',
         paddingLeft: '20px',
@@ -143,7 +143,7 @@ export default function Register() {
 
       {/* ── Modal Container (Page-style) ── */}
       <div
-        className="auth-modal-container animate-fade-in-up fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[420px] max-h-[94vh] overflow-y-auto rounded-[24px] bg-[var(--bg-surface)] border border-[var(--border-color)] shadow-[0_24px_60px_rgba(0,0,0,0.4)] z-50 p-1"
+        className="auth-modal-container animate-fade-in-up relative z-10 my-8"
         style={{
           width: '100%',
           maxWidth: 420,
