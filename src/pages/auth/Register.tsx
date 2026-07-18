@@ -118,11 +118,18 @@ export default function Register() {
 
   return (
     <div
-      className="min-h-screen flex justify-center relative overflow-hidden py-12"
       style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        minHeight: '100vh',
+        position: 'relative',
+        overflowX: 'hidden',
         background: 'var(--bg-base)',
         paddingLeft: '20px',
         paddingRight: '20px',
+        paddingBottom: '48px',
       }}
     >
       {/* Background blobs */}
@@ -131,6 +138,7 @@ export default function Register() {
         style={{
           background: 'radial-gradient(circle, #f97316, transparent 70%)',
           transform: 'translate(30%, -30%)',
+          position: 'absolute',
         }}
       />
       <div
@@ -138,20 +146,27 @@ export default function Register() {
         style={{
           background: 'radial-gradient(circle, #0f766e, transparent 70%)',
           transform: 'translate(-30%, 30%)',
+          position: 'absolute',
         }}
       />
 
-      {/* ── Modal Container (Page-style) ── */}
+      {/* ── Modal Container (Fixed Position Magic) ── */}
       <div
-        className="auth-modal-container animate-fade-in-up relative z-10 my-8"
+        className="auth-modal-container animate-fade-in-up-centered"
         style={{
-          width: '100%',
-          maxWidth: 420,
+          position: 'fixed', // 👈 পেরেন্টের সব রুলস ব্রেক করবে
+          top: '24px', // 👈 স্ক্রিনের একদম মাথা থেকে ২৪ পিক্সেল গ্যাপে থাকবে
+          left: '50%',
+          transform: 'translateX(-50%)', // 👈 ডানে-বামে পারফেক্ট সেন্টার
+          zIndex: 9999, // 👈 সবার ওপরে ভাসবে
+          width: 'calc(100% - 40px)', // 👈 মোবাইলে দুই পাশে ২০ পিক্সেল করে মার্জিন পাবে
+          maxWidth: '420px',
+          maxHeight: 'calc(100vh - 48px)', // 👈 স্ক্রিনের বাইরে যাবে না, স্ক্রল হবে
+          overflowY: 'auto',
           background: 'var(--bg-surface)',
           border: '1px solid var(--border-color)',
-          borderRadius: '24px',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.4)',
-          overflow: 'hidden',
+          borderRadius: '24px', // 👈 চারপাশ সমান গোল
+          boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
         }}
       >
         {/* ── Header ── */}

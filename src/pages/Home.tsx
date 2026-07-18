@@ -158,26 +158,31 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
   return (
     /* ── Overlay ── */
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center animate-fade-in"
+      className="fixed inset-0 z-[100] animate-fade-in"
       style={{
         background: 'rgba(0,0,0,0.75)',
         backdropFilter: 'blur(10px)',
-        padding: '0 0 0 0',
       }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       {/* ── Modal Container ── */}
       <div
-        className="auth-modal-container animate-fade-in-up"
+        className="auth-modal-container animate-fade-in-up-centered"
         style={{
-          width: '100%',
+          position: 'fixed',
+          top: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+          width: 'calc(100% - 40px)',
           maxWidth: 420,
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '24px 24px 0 0',
-          maxHeight: '94vh',
+          maxHeight: 'calc(100vh - 48px)',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '24px',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
         }}
       >
         {/* ── Header ── */}
@@ -802,11 +807,7 @@ function MealCard({
           {emoji} <span className="capitalize">{meal.timeSlot || 'Meal'}</span>
         </div>
         {/* Price */}
-        <div
-          className="custom-price-badge"
-        >
-          ৳{meal.price}
-        </div>
+        <div className="custom-price-badge">৳{meal.price}</div>
       </div>
 
       {/* Content */}

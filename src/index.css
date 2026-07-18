@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
-@import "tailwindcss";
-
+@import 'tailwindcss';
 
 @theme {
   --radius-3xl: 16px;
@@ -24,15 +23,15 @@
   --brand-accent: #fbbf24;
 
   /* ── Light Theme Backgrounds ── */
-  --bg-base: #f1f5f9;          /* cool light gray page bg */
-  --bg-surface: #ffffff;       /* white cards */
-  --bg-elevated: #f8fafc;      /* slightly off-white */
+  --bg-base: #f1f5f9; /* cool light gray page bg */
+  --bg-surface: #ffffff; /* white cards */
+  --bg-elevated: #f8fafc; /* slightly off-white */
   --bg-card: #ffffff;
 
   /* ── Sidebar (stays dark) ── */
   --sidebar-bg: #0f172a;
   --sidebar-surface: #1e293b;
-  --sidebar-border: rgba(255,255,255,0.07);
+  --sidebar-border: rgba(255, 255, 255, 0.07);
 
   /* ── Text (light mode) ── */
   --text-primary: #0f172a;
@@ -44,9 +43,12 @@
   --border-focus: rgba(249, 115, 22, 0.5);
 
   /* ── Shadows (crisp for light mode) ── */
-  --shadow-sm: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
-  --shadow-md: 0 4px 12px rgba(15,23,42,0.08), 0 2px 6px rgba(15,23,42,0.04);
-  --shadow-lg: 0 10px 30px rgba(15,23,42,0.1), 0 4px 12px rgba(15,23,42,0.06);
+  --shadow-sm:
+    0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md:
+    0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-lg:
+    0 10px 30px rgba(15, 23, 42, 0.1), 0 4px 12px rgba(15, 23, 42, 0.06);
   --shadow-glow: 0 0 20px rgba(249, 115, 22, 0.25);
 
   /* Radius */
@@ -68,7 +70,9 @@
 /* ===========================
    Global Reset & Base
 =========================== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -80,7 +84,11 @@ html {
 }
 
 body {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Outfit',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   background-color: #cbd5e1; /* slightly darker background for desktop space */
   color: var(--text-primary);
   line-height: 1.6;
@@ -110,11 +118,15 @@ body {
   width: 100%;
   max-width: 480px; /* Mobile width constraint */
   margin: 0 auto;
-  background-color: var(--bg-base); /* Original body background inside the app */
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 0, 0, 0.05);
+  background-color: var(
+    --bg-base
+  ); /* Original body background inside the app */
+  box-shadow:
+    var(--shadow-lg),
+    0 0 40px rgba(0, 0, 0, 0.05);
   position: relative;
   /* Make #root the containing block for fixed elements */
-  transform: translateZ(0); 
+  transform: translateZ(0);
   overflow-x: hidden;
 }
 
@@ -125,7 +137,9 @@ body {
   width: 4px;
   height: 4px;
 }
-::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: var(--radius-full);
@@ -152,18 +166,30 @@ body {
    Gradient Utilities
 =========================== */
 .gradient-brand {
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary) 0%,
+    var(--brand-accent) 100%
+  );
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary) 0%,
+    var(--brand-accent) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-teal {
-  background: linear-gradient(135deg, var(--brand-secondary) 0%, var(--brand-secondary-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--brand-secondary) 0%,
+    var(--brand-secondary-light) 100%
+  );
 }
 
 /* ===========================
@@ -192,9 +218,27 @@ body {
   }
 }
 
+/* Separate animation ONLY for elements that are horizontally centered
+   with `left: 50%; transform: translateX(-50%)` (the auth modal).
+   Keeps fadeInUp (used by meal cards, etc.) unaffected. */
+@keyframes fadeInUpCentered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideInLeft {
@@ -209,27 +253,51 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 12px rgba(249, 115, 22, 0.3); }
-  50%       { box-shadow: 0 0 24px rgba(249, 115, 22, 0.6); }
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(249, 115, 22, 0.6);
+  }
 }
 
 @keyframes shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-fade-in-up {
   animation: fadeInUp 0.5s ease forwards;
+}
+
+/* Use this ONLY on the auth modal container (Register/Login),
+   NOT on meal cards or anything without translateX(-50%) centering. */
+.animate-fade-in-up-centered {
+  animation: fadeInUpCentered 0.5s ease forwards;
 }
 
 .animate-fade-in {
@@ -270,20 +338,27 @@ body {
   background: rgba(10, 15, 30, 0.75);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Stat card hover glow */
 .stat-card-glow:hover {
-  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
-
 /* Staggered delay helpers */
-.delay-1 { animation-delay: 0.1s; }
-.delay-2 { animation-delay: 0.2s; }
-.delay-3 { animation-delay: 0.3s; }
-.delay-4 { animation-delay: 0.4s; }
+.delay-1 {
+  animation-delay: 0.1s;
+}
+.delay-2 {
+  animation-delay: 0.2s;
+}
+.delay-3 {
+  animation-delay: 0.3s;
+}
+.delay-4 {
+  animation-delay: 0.4s;
+}
 
 /* ===========================
    Meal Card & Grid
@@ -319,7 +394,6 @@ body {
   }
 }
 
-
 .meal-card {
   background: var(--bg-card);
   backdrop-filter: blur(20px);
@@ -327,7 +401,9 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -420,7 +496,11 @@ body {
 .price-badge {
   display: inline-flex;
   align-items: center;
-  background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary),
+    var(--brand-accent)
+  );
   color: white;
   font-weight: 700;
   padding: 0.2rem 0.6rem;
@@ -441,10 +521,26 @@ body {
   font-weight: 600;
 }
 
-.badge-success { background: rgba(20, 184, 166, 0.15); color: #14b8a6; border: 1px solid rgba(20, 184, 166, 0.3); }
-.badge-warning { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
-.badge-danger  { background: rgba(239, 68, 68, 0.15);  color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
-.badge-info    { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+.badge-success {
+  background: rgba(20, 184, 166, 0.15);
+  color: #14b8a6;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+}
+.badge-warning {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+.badge-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.badge-info {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
 
 /* ===========================
    Bottom Nav Safe Area
@@ -457,17 +553,23 @@ body {
    Mobile Responsive Helpers
 =========================== */
 @media (min-width: 768px) {
-  .hide-on-desktop { display: none !important; }
+  .hide-on-desktop {
+    display: none !important;
+  }
 }
 
 @media (max-width: 767px) {
-  .hide-on-mobile { display: none !important; }
+  .hide-on-mobile {
+    display: none !important;
+  }
 }
 
 /* ===========================
    Form elements base
 =========================== */
-input, select, textarea {
+input,
+select,
+textarea {
   font-family: 'Outfit', sans-serif;
 }
 
@@ -478,7 +580,7 @@ input, select, textarea {
   background: linear-gradient(
     90deg,
     var(--bg-elevated) 25%,
-    rgba(255,255,255,0.05) 50%,
+    rgba(255, 255, 255, 0.05) 50%,
     var(--bg-elevated) 75%
   );
   background-size: 200% auto;
@@ -537,11 +639,11 @@ input, select, textarea {
    Auth Modal Responsive
 =========================== */
 .auth-modal-container {
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 .auth-modal-container::-webkit-scrollbar {
-  display: none;                  /* Chrome/Safari */
+  display: none; /* Chrome/Safari */
 }
 
 /* Desktop: fully rounded + centered */

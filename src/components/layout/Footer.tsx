@@ -15,7 +15,7 @@ export default function Footer() {
                 }}
             >
                 {/* Copyright */}
-                <p className="text-center" style={{ color: "var(--text-muted)", fontSize: "15px" }}>
+                <p className="text-center" style={{ color: "var(--text-muted)", fontSize: "13px" }}>
                     © {new Date().getFullYear()} Uttara Dining. All rights reserved. Design by{" "}
                     <a
                         href="https://rakibmiah.vercel.app/"
