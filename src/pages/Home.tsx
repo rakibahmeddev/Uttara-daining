@@ -646,12 +646,22 @@ export default function Home() {
       style={{ background: 'var(--bg-base)' }}
     >
       {/* ════ NAVBAR ════ */}
-      <Header variant="public" onLoginRequest={() => setAuthModal('login')} onRegisterRequest={() => setAuthModal('register')} />
+      <Header
+        variant="public"
+        onLoginRequest={() => setAuthModal('login')}
+        onRegisterRequest={() => setAuthModal('register')}
+      />
 
       {/* ════ MENU SECTION ════ */}
       <main
         className="flex-1 mx-auto  w-full px-4 sm:px-6 lg:px-8 py-0"
-        style={{ maxWidth: '1200px', marginTop: '40px', marginBottom: '40px', paddingLeft: '20px', paddingRight: '20px' }}
+        style={{
+          maxWidth: '1200px',
+          marginTop: '40px',
+          marginBottom: '40px',
+          paddingLeft: '20px',
+          paddingRight: '20px',
+        }}
       >
         {/* Section header */}
         <div className="flex justify-center my-20">
@@ -664,7 +674,11 @@ export default function Home() {
             </h2>
             <p
               className="text-md mt-0.5"
-              style={{ color: 'var(--text-muted)', marginBottom: '20px', textAlign: 'center' }}
+              style={{
+                color: 'var(--text-muted)',
+                marginBottom: '20px',
+                textAlign: 'center',
+              }}
             >
               Fresh options updated every day
             </p>
@@ -788,7 +802,7 @@ function MealCard({
           {emoji} <span className="capitalize">{meal.timeSlot || 'Meal'}</span>
         </div>
         {/* Price */}
-        <div className="custom-price-badge">৳{meal.price}</div>
+        <div className="custom-price-badge" style={{padding: '0', fontSize: '13px'}}>৳{meal.price}</div>
       </div>
 
       {/* Content */}
@@ -841,7 +855,7 @@ function MealCard({
               boxShadow: '0 4px 14px rgba(249,115,22,0.28)',
               paddingTop: '10px',
               paddingBottom: '10px',
-              fontSize: '16px',
+              fontSize: '13px',
             }}
           >
             <LogIn size={15} /> Login to Order
