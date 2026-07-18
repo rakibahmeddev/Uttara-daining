@@ -25,7 +25,7 @@ export default function Notifications() {
     const [type, setType] = useState("info");
 
     const [noticeMessage, setNoticeMessage] = useState("");
-    const [paymentNumber, setPaymentNumber] = useState("");
+    
    
 
     useEffect(() => {
@@ -49,7 +49,6 @@ export default function Notifications() {
 
     const openNoticeModal = () => {
         setNoticeMessage(permanentNotice?.message || "");
-        setPaymentNumber(permanentNotice?.paymentNumber || "");
         
         setIsNoticeModalOpen(true);
     };
@@ -87,8 +86,6 @@ export default function Notifications() {
         try {
             await savePermanentNotice({
                 message: noticeMessage.trim(),
-                paymentNumber: paymentNumber.trim(),
-                paymentMethod,
                 updatedBy: currentUser!.uid,
                 updatedByName: currentUser!.name,
             });
