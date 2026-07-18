@@ -802,7 +802,12 @@ function MealCard({
           {emoji} <span className="capitalize">{meal.timeSlot || 'Meal'}</span>
         </div>
         {/* Price */}
-        <div className="custom-price-badge" style={{padding: '0', fontSize: '13px'}}>৳{meal.price}</div>
+        <div
+          className="custom-price-badge"
+          style={{ padding: '0', fontSize: '13px' }}
+        >
+          ৳{meal.price}
+        </div>
       </div>
 
       {/* Content */}
@@ -844,7 +849,7 @@ function MealCard({
               boxShadow: '0 4px 14px rgba(249,115,22,0.28)',
             }}
           >
-            <ShoppingCart size={14} /> Order Now
+            Order Now
           </button>
         ) : (
           <button
@@ -858,7 +863,7 @@ function MealCard({
               fontSize: '13px',
             }}
           >
-            <LogIn size={15} /> Login to Order
+            Login to Order
           </button>
         )}
       </div>
