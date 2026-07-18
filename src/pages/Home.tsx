@@ -796,15 +796,14 @@ function MealCard({
         )}
         {/* Time badge */}
         <div
-          className={`absolute top-3 left-3 inline-flex items-center gap-2 rounded-full font-bold text-white bg-gradient-to-r ${gradient} shadow-lg`}
-          style={{ padding: '3px 14px', fontSize: '13px' }}
+          className={` absolute top-2 left-2 inline-flex items-center gap-1 rounded-full font-bold text-white backdrop-blur-xl bg-sky-950/80 border border-white/30 shadow-2xl`}
+          style={{ padding: '3px 8px', fontSize: '12px' }}
         >
           {emoji} <span className="capitalize">{meal.timeSlot || 'Meal'}</span>
         </div>
         {/* Price */}
         <div
           className="custom-price-badge"
-          style={{ padding: '0', fontSize: '13px' }}
         >
           ৳{meal.price}
         </div>
