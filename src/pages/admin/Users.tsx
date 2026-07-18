@@ -99,6 +99,7 @@ export default function Users() {
         setEditingUser(user);
         setProfileData({
             name: user.name || '',
+            email: user.email || '',
             phone: user.phone || '',
             password: user.password || '',
             roomNumber: user.roomNumber || '',
@@ -114,8 +115,40 @@ export default function Users() {
 
         setLoading(true);
         try {
-            const { doc, updateDoc } = await import('firebase/firestore');
-            await updateDoc(doc(db, 'users', editingUser.id), profileData);
+            const { doc, updateDoc, collection, getDocs, query, where } = await import('firebase/firestore');
+            const usersRef = collection(db, 'users');
+
+            // 1. Check Phone Uniqueness
+            if (profileData.phone) {
+                const phoneQuery = query(usersRef, where("phone", "==", profileData.phone));
+                const phoneSnapshot = await getDocs(phoneQuery);
+                const isDuplicatePhone = phoneSnapshot.docs.some(d => d.id !== editingUser.id);
+                if (isDuplicatePhone) {
+                    alert("Error: This Mobile Number is already used by another person!");
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // 2. Check Email Uniqueness
+            if (profileData.email) {
+                const emailQuery = query(usersRef, where("email", "==", profileData.email.toLowerCase()));
+                const emailSnapshot = await getDocs(emailQuery);
+                const isDuplicateEmail = emailSnapshot.docs.some(d => d.id !== editingUser.id);
+                if (isDuplicateEmail) {
+                    alert("Error: This Email is already used by another person!");
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // Make sure email is saved in lowercase if edited
+            const dataToSave = { ...profileData };
+            if (dataToSave.email) {
+                dataToSave.email = dataToSave.email.toLowerCase();
+            }
+
+            await updateDoc(doc(db, 'users', editingUser.id), dataToSave);
             alert("Profile updated successfully!");
             setEditingUser(null);
         } catch (error) {
@@ -146,27 +179,26 @@ export default function Users() {
 
     return (
         <div className="space-y-6 animate-fade-in-up">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex flex-col gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800">Manage Users</h2>
+                    <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#ffffff" }}>Manage Users</h2>
                     <p className="text-xs text-slate-500 mt-1">View, edit, search, and manage funds for Uttara Dining users</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative w-full sm:w-80">
+                    <div className="relative w-full">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                         <Input
                             type="text"
-                            placeholder="Search users..."
+                            placeholder="Search by ID, name, email, room, hall..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-10 h-10"
                         />
                     </div>
-                    
                 </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden" style={{ marginTop: "10px" }}>
                 <div className="overflow-x-auto">
                     <table className="admin-table">
                         <thead>
@@ -281,10 +313,10 @@ export default function Users() {
                 }}
                 title={`Manage Balance: ${selectedUser?.name}`}
             >
-                <form onSubmit={handleBalanceUpdate} className="space-y-4">
+                <form onSubmit={handleBalanceUpdate} style={{ display: "flex", flexDirection: "column", gap: "14px", paddingBottom: "4px" }}>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Action</label>
-                        <div className="flex space-x-2">
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Action</label>
+                        <div style={{ display: "flex", gap: "10px" }}>
                             <button
                                 type="button"
                                 onClick={() => setTransactionType("add")}
@@ -309,7 +341,7 @@ export default function Users() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Amount (৳)</label>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Amount (৳)</label>
                         <Input
                             type="number"
                             value={amount}
@@ -320,11 +352,11 @@ export default function Users() {
                         />
                     </div>
 
-                    <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-600">
-                        <p>Current Balance: <span className="font-bold">৳{selectedUser?.balance || 0}</span></p>
+                    <div style={{ background: "rgba(255,255,255,0.05)", padding: "12px 14px", borderRadius: "10px", fontSize: "14px", color: "rgba(255,255,255,0.9)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                        <p>Current Balance: <span style={{ fontWeight: "bold", color: "#38bdf8" }}>৳{selectedUser?.balance || 0}</span></p>
                         {amount && (
-                            <p className="mt-1">
-                                New Balance: <span className="font-bold">
+                            <p style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
+                                New Balance: <span style={{ fontWeight: "bold", color: transactionType === 'deduct' ? "#f87171" : "#4ade80" }}>
                                     ৳{(selectedUser?.balance || 0) + (transactionType === 'deduct' ? -Number(amount) : Number(amount))}
                                 </span>
                             </p>
@@ -335,6 +367,7 @@ export default function Users() {
                         type="submit"
                         className={`w-full ${transactionType === 'deduct' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
                         disabled={loading}
+                        style={{ padding: "12px", fontSize: "14px" }}
                     >
                         {loading ? "Processing..." : (transactionType === 'deduct' ? "Deduct Balance" : "Add Balance")}
                     </Button>
@@ -347,9 +380,9 @@ export default function Users() {
                 onClose={() => setEditingUser(null)}
                 title={`Edit Profile: ${editingUser?.name}`}
             >
-                <form onSubmit={handleSaveProfile} className="space-y-4">
+                <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "14px", paddingBottom: "4px" }}>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Full Name</label>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Full Name</label>
                         <Input
                             type="text"
                             value={profileData.name || ''}
@@ -358,9 +391,19 @@ export default function Users() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Email Address</label>
+                        <Input
+                            type="email"
+                            value={profileData.email || ''}
+                            onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                            required
+                        />
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Mobile Number</label>
+                            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Mobile Number</label>
                             <Input
                                 type="text"
                                 value={profileData.phone || ''}
@@ -369,7 +412,7 @@ export default function Users() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Password / PIN</label>
+                            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Password / PIN</label>
                             <Input
                                 type="text"
                                 value={profileData.password || ''}
@@ -379,9 +422,9 @@ export default function Users() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Room Number</label>
+                            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Room Number</label>
                             <Input
                                 type="text"
                                 value={profileData.roomNumber || ''}
@@ -389,7 +432,7 @@ export default function Users() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">Registration No.</label>
+                            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Registration No.</label>
                             <Input
                                 type="text"
                                 value={profileData.registrationNumber || ''}
@@ -399,7 +442,7 @@ export default function Users() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Department</label>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Department</label>
                         <Input
                             type="text"
                             value={profileData.departmentName || ''}
@@ -408,7 +451,7 @@ export default function Users() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-1">Hall Name</label>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Hall Name</label>
                         <Input
                             type="text"
                             value={profileData.hallName || ''}
@@ -416,7 +459,7 @@ export default function Users() {
                         />
                     </div>
 
-                    <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                    <div style={{ background: "rgba(56, 189, 248, 0.1)", padding: "12px 14px", borderRadius: "10px", fontSize: "13px", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.2)", marginTop: "4px" }}>
                         ℹ️ Student ID ({editingUser?.idNumber}) is auto-generated and cannot be modified.
                     </div>
 
@@ -424,6 +467,7 @@ export default function Users() {
                         type="submit"
                         className="w-full"
                         disabled={loading}
+                        style={{ padding: "12px", fontSize: "14px" }}
                     >
                         {loading ? "Saving..." : "Save Changes"}
                     </Button>

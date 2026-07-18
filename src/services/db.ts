@@ -74,7 +74,7 @@ export const updateUserBalance = async (userId, amount, description) => {
         transaction.set(transactionRef, {
             userId,
             amount: Math.abs(delta),
-            type: delta >= 0 ? "credit" : "debit",
+            type: delta >= 0 ? "credit" : "withdraw",
             description,
             createdAt: serverTimestamp()
         });
@@ -199,29 +199,48 @@ export const submitWithdrawalRequest = async (data: {
     reason: string;
     requestNumber: string | number;
 }) => {
-    const pending = await getPendingWithdrawalsForUser(data.userId);
-    const { getDoc } = await import("firebase/firestore");
-    const userRef = doc(db, "users", data.userId);
-    const userDoc = await getDoc(userRef);
-    if (!userDoc.exists()) throw new Error("User not found");
+    // Use a transaction to atomically deduct balance and create the request
+    await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, "users", data.userId);
+        const userSnap = await transaction.get(userRef);
+        if (!userSnap.exists()) throw new Error("User not found");
 
-    const pendingTotal = pending.reduce((s, r) => s + Math.abs(Number(r.amount)), 0);
-    const available = getAvailableBalance(userDoc.data() as UserDoc, pendingTotal);
-    const validation = validateWithdrawalAmount(data.amount, available);
-    if (!validation.valid) throw new Error(validation.error!);
+        const currentBalance = userSnap.data().balance || 0;
+        const withdrawAmount = Math.abs(data.amount);
 
-    await addDoc(collection(db, "balanceRequests"), {
-        userId: data.userId,
-        userName: data.userName,
-        userEmail: data.userEmail,
-        userNumericId: data.userNumericId ?? null,
-        amount: -Math.abs(data.amount),
-        type: "withdraw",
-        bkashNumber: data.bkashNumber,
-        reason: data.reason,
-        status: "pending",
-        requestNumber: data.requestNumber,
-        createdAt: serverTimestamp(),
+        if (currentBalance < withdrawAmount) {
+            throw new Error(`Insufficient balance. Available: ৳${currentBalance}`);
+        }
+
+        // Deduct balance immediately
+        transaction.update(userRef, { balance: currentBalance - withdrawAmount });
+
+        // Create the withdrawal request with pending status
+        const requestRef = doc(collection(db, "balanceRequests"));
+        transaction.set(requestRef, {
+            userId: data.userId,
+            userName: data.userName,
+            userEmail: data.userEmail,
+            userNumericId: data.userNumericId ?? null,
+            amount: -withdrawAmount,
+            type: "withdraw",
+            bkashNumber: data.bkashNumber,
+            reason: data.reason,
+            status: "pending",
+            requestNumber: data.requestNumber,
+            balanceDeductedAtSubmit: true, // flag so admin approval skips deduction
+            createdAt: serverTimestamp(),
+        });
+
+        // Record a transaction entry
+        const transRef = doc(collection(db, "transactions"));
+        transaction.set(transRef, {
+            userId: data.userId,
+            amount: withdrawAmount,
+            type: "debit",
+            description: `Withdrawal requested — ${data.bkashNumber}`,
+            createdAt: serverTimestamp(),
+        });
     });
 };
 
@@ -282,16 +301,18 @@ export const approveBalanceRequest = async (
         const currentBalance = userSnap.data().balance || 0;
 
         if (reqData.type === "withdraw") {
-            const withdrawAmount = Math.abs(Number(reqData.amount));
-            const available = getAvailableBalance({ balance: currentBalance }, otherPendingWithdrawals);
-            const validation = validateWithdrawalAmount(withdrawAmount, available);
-            if (!validation.valid) throw new Error(validation.error!);
-
-            transaction.update(userRef, { balance: currentBalance - withdrawAmount });
+            // Balance was already deducted at submission time if balanceDeductedAtSubmit is true
+            if (!reqData.balanceDeductedAtSubmit) {
+                const withdrawAmount = Math.abs(Number(reqData.amount));
+                const available = getAvailableBalance({ balance: currentBalance }, otherPendingWithdrawals);
+                const validation = validateWithdrawalAmount(withdrawAmount, available);
+                if (!validation.valid) throw new Error(validation.error!);
+                transaction.update(userRef, { balance: currentBalance - withdrawAmount });
+            }
             const transRef = doc(collection(db, "transactions"));
             transaction.set(transRef, {
                 userId: reqData.userId,
-                amount: withdrawAmount,
+                amount: Math.abs(Number(reqData.amount)),
                 type: "debit",
                 description: `Withdrawal approved — ${reqData.bkashNumber || "bKash"}`,
                 balanceRequestId: request.id,

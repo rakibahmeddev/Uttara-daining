@@ -64,7 +64,6 @@ export default function WithdrawalRequest() {
             },
             (e) => {
                 console.error(e);
-                setError("Failed to load request history");
                 setFetchingRequests(false);
             }
         );
@@ -118,29 +117,63 @@ export default function WithdrawalRequest() {
     return (
         <div className="animate-fade-in-up w-full pb-24 md:pb-8">
 
-            <div className="mb-6" style={{margin:'50px', padding: '0px'}}>
-                <div
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-3xl p-6 shadow-md"
-                    style={{ background: "linear-gradient(135deg, #f97316, #fbbf24)" }}
-                     
-                >
-                    <div style={{padding: '20px'}}>
-                        <h1 className="text-xl font-black text-white md:text-3xl">Withdraw Balance</h1>
-                        <p className="mt-1 text-sm text-white/80">Request withdrawal to your bKash account</p>
+            {/* Balance Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '0 20px', margin: '24px auto 0', width: '100%', maxWidth: '896px', boxSizing: 'border-box' }}>
+                {/* Available Balance */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #f97316, #fbbf24)',
+                    borderRadius: '16px',
+                    padding: '24px 20px',
+                    boxShadow: '0 4px 20px rgba(249,115,22,0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '10px', padding: '8px', display: 'flex' }}>
+                            <Wallet size={18} color="#fff" />
+                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Available Balance</span>
                     </div>
-                    
+                    <p style={{ fontSize: '32px', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.1 }}>
+                        ৳{availableBalance.toLocaleString()}
+                    </p>
+                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', margin: 0 }}>Ready to withdraw</p>
+                </div>
+
+                {/* Expense Balance */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    borderRadius: '16px',
+                    padding: '24px 20px',
+                    boxShadow: '0 4px 20px rgba(99,102,241,0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '10px', padding: '8px', display: 'flex' }}>
+                            <Send size={18} color="#fff" />
+                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Spent</span>
+                    </div>
+                    <p style={{ fontSize: '32px', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.1 }}>
+                        ৳{Math.max(0, (currentUser?.totalDeposited || 0) - (currentUser?.balance || 0)).toLocaleString()}
+                    </p>
+                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', margin: 0 }}>Total expense balance</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2" style={{padding: '0px', margin: '50px'}}>
-                <div className="flex flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div className="mb-6 flex items-center gap-3" style={{margin: '20px'}}>
-                        
+
+            <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto" style={{ padding: '0 20px', margin: '20px auto 50px' }}>
+                <div className="flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm" style={{ padding: '28px 24px' }}>
+                    <div className="flex items-center gap-3" style={{ marginBottom: '24px' }}>
                         <h2 className="text-xl font-bold text-slate-800">New Withdrawal</h2>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="flex flex-1 flex-col space-y-5" style={{padding: '20px'}}>
-                        <FormField label="Withdrawal Amount (৳)" variant="light" error={amount && validation.error ? validation.error : undefined} style={{marginBottom: '10px'}}>
+                    <form onSubmit={handleSubmit} className="flex flex-1 flex-col" style={{ gap: '18px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Withdrawal Amount (৳)</label>
                             <Input
                                 type="number"
                                 value={amount}
@@ -152,37 +185,39 @@ export default function WithdrawalRequest() {
                                 min="1"
                                 max={availableBalance}
                                 placeholder="Enter amount"
-                                
                                 error={!!(amount && validation.error)}
-                                style={{padding: '10px'}}
+                                style={{ padding: '12px 16px', borderRadius: '10px' }}
                             />
-                            <p className="mt-1.5 text-xs font-medium text-slate-400">
+                            <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
                                 Maximum available: ৳{availableBalance.toLocaleString()}
                             </p>
-                        </FormField>
+                        </div>
 
-                        <FormField label="bKash Number *" variant="light">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>bKash Number *</label>
                             <Input
                                 type="tel"
                                 value={bkashNumber}
                                 onChange={(e) => setBkashNumber(e.target.value.replace(/\D/g, "").slice(0, 11))}
                                 required
-                                placeholder="01712345678"
+                                placeholder="017xxxxxxxx"
                                 maxLength={11}
                                 error={bkashNumber.length > 0 && bkashNumber.length !== 11}
-                                style={{padding: '5px'}}
+                                style={{ padding: '12px 16px', borderRadius: '10px' }}
                             />
-                        </FormField>
+                        </div>
 
-                        <FormField label="Reason for Withdrawal" variant="light">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Reason for Withdrawal</label>
                             <Textarea
                                 rows={3}
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
                                 required
                                 placeholder="Please explain why you need to withdraw..."
+                                style={{ padding: '12px 16px', borderRadius: '10px' }}
                             />
-                        </FormField>
+                        </div>
 
                         {amount && validation.valid && (
                             <div className="space-y-2 rounded-2xl border border-slate-200/50 bg-slate-50 p-4">
@@ -199,21 +234,17 @@ export default function WithdrawalRequest() {
                             </div>
                         )}
 
-                        {error && (
-                            <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                                <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                                {error}
-                            </div>
-                        )}
 
-                        <div className="mt-auto pt-4">
+                        <div style={{ marginTop: '8px' }}>
                             <button
                                 type="submit"
                                 disabled={!canSubmit}
-                                className="w-full rounded-xl py-4 text-base font-bold text-white transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                                className="w-full text-base font-bold text-white transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                                 style={{
                                     background: canSubmit ? "linear-gradient(135deg, #f97316, #fbbf24)" : "#94a3b8",
                                     boxShadow: canSubmit ? "0 4px 14px rgba(249,115,22,0.35)" : "none",
+                                    borderRadius: '10px',
+                                    padding: '14px 24px',
                                 }}
                             >
                                 {loading ? "Submitting..." : "Submit Request"}
@@ -225,9 +256,8 @@ export default function WithdrawalRequest() {
                     </form>
                 </div>
 
-                <div className="flex h-full max-h-[850px] flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm" style={{padding: '20px'}}>
-                    <div className="mb-6 flex items-center gap-3">
-                        
+                <div className="flex h-full max-h-[850px] flex-col rounded-xl border border-slate-200 bg-white shadow-sm" style={{ padding: '28px 24px' }}>
+                    <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
                         <h3 className="text-xl font-bold text-slate-800">History</h3>
                     </div>
 

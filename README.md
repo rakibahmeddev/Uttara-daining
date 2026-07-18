@@ -1,6 +1,6 @@
 # Hostel Meal Management System
 
-A complete hostel meal management website built with Vite + React, Tailwind CSS, and Firebase.
+A complete hostel meal management website ready to use built with Vite + React, Typescript, Tailwind CSS, and Firebase.
 
 ## Features
 
@@ -67,6 +67,7 @@ npm run dev
 ## Cloud Functions
 
 The `functions/` directory contains Cloud Functions for:
+
 - `promoteUserToAdmin`: Callable function to promote users.
 - `dailyReport`: Scheduled daily sales report.
 

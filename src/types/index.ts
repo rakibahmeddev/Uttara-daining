@@ -24,6 +24,11 @@ export interface Order extends FirestoreDoc {
     totalAmount: number;
     items: OrderItem[];
     createdAt?: Timestamp | { seconds: number; nanoseconds: number };
+    deliveredBy?: string | null;
+    deliveredByName?: string;
+    deliveredByRoom?: string;
+    deliveredAt?: Timestamp | { seconds: number; nanoseconds: number } | Date;
+    paymentMethod?: "balance" | "cash" | string;
 }
 
 export interface Meal extends FirestoreDoc {
@@ -51,6 +56,7 @@ export interface UserDoc extends FirestoreDoc {
     hallName?: string;
     balance?: number;
     uid?: string;
+    assignedDeliveryDate?: string;
 }
 
 export interface BalanceRequest extends FirestoreDoc {

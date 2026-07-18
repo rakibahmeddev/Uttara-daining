@@ -16,7 +16,7 @@ export default function BalanceRequests() {
     const { currentUser } = useAuth();
     const [requests, setRequests] = useState<BalanceRequest[]>([]);
     const [users, setUsers] = useState<UserDoc[]>([]);
-    const [filter, setFilter] = useState("pending");
+    const [filter, setFilter] = useState("topup");
     const [searchQuery, setSearchQuery] = useState("");
     const [processing, setProcessing] = useState(false);
 
@@ -28,6 +28,8 @@ export default function BalanceRequests() {
         const q =
             filter === "all"
                 ? query(collection(db, "balanceRequests"))
+                : filter === "withdraw" || filter === "topup"
+                ? query(collection(db, "balanceRequests"), where("type", "==", filter))
                 : query(collection(db, "balanceRequests"), where("status", "==", filter));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -112,11 +114,11 @@ export default function BalanceRequests() {
         }
     };
 
-    const filters = ["pending", "approved", "rejected", "all"] as const;
+    const filters = ["topup", "withdraw"] as const;
 
     return (
-        <DashboardPage title="Balance Requests" subtitle="Review student top-ups, withdrawals, and balance changes">
-            <div className="flex flex-wrap gap-2">
+        <DashboardPage title="Wallet" subtitle="Review student top-ups, withdrawals, and balance changes">
+            <div className="flex flex-wrap gap-2" style={{ marginTop: "5px", marginBottom: "10px" }}>
                 {filters.map((status) => (
                     <Button
                         key={status}
@@ -127,23 +129,24 @@ export default function BalanceRequests() {
                                 ? "border-transparent"
                                 : "border-white/20 bg-white/5 text-slate-300 hover:bg-white/10"
                         )}
+                        style={{ padding: "3px 8px", fontSize: "12px", height: "auto" }}
                     >
                         {status.charAt(0).toUpperCase() + status.slice(1)}
                     </Button>
                 ))}
             </div>
 
-            <DashboardTableCard
-                toolbar={
-                    <TableSearchBar
-                        value={searchQuery}
-                        onChange={setSearchQuery}
-                        placeholder="Search by name, email, TxnID, type…"
-                        resultCount={filteredRequests.length}
-                        totalCount={enrichedRequests.length}
-                    />
-                }
-            >
+            <div style={{ marginBottom: "16px" }}>
+                <TableSearchBar
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Search by name, email, TxnID, type…"
+                    resultCount={filteredRequests.length}
+                    totalCount={enrichedRequests.length}
+                />
+            </div>
+
+            <DashboardTableCard>
                 <table className="admin-table admin-table-dark">
                     <thead>
                         <tr>
@@ -182,7 +185,7 @@ export default function BalanceRequests() {
                                     <td className="whitespace-nowrap">
                                         <TypeBadge type={request.type} />
                                     </td>
-                                    <td className="whitespace-nowrap text-sm font-extrabold text-white">
+                                    <td className="whitespace-nowrap text-sm font-extrabold text-slate-900">
                                         ৳{Math.abs(request.amount).toLocaleString()}
                                     </td>
                                     <td className="max-w-xs text-sm text-slate-400">
@@ -209,6 +212,7 @@ export default function BalanceRequests() {
                                                     onClick={() => handleApprove(request)}
                                                     disabled={processing}
                                                     className="bg-emerald-600 hover:bg-emerald-700"
+                                                    style={{ padding: "2px 4px" }}
                                                 >
                                                     Approve
                                                 </Button>
@@ -217,6 +221,7 @@ export default function BalanceRequests() {
                                                     onClick={() => handleReject(request)}
                                                     disabled={processing}
                                                     className="bg-red-600 hover:bg-red-700"
+                                                    style={{ padding: "2px 4px" }}
                                                 >
                                                     Reject
                                                 </Button>

@@ -26,6 +26,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 )}
                 <input
                     ref={ref}
+                    style={{ padding: Icon ? "10px 14px 10px 42px" : "10px 14px" }}
                     className={cn(
                         "w-full rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
                         "focus:outline-none focus:ring-2",
@@ -57,6 +58,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         return (
             <textarea
                 ref={ref}
+                style={{ padding: "10px 14px" }}
                 className={cn(
                     "w-full resize-none rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
                     "focus:outline-none focus:ring-2",
@@ -85,6 +87,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         return (
             <select
                 ref={ref}
+                style={{ padding: "10px 14px" }}
                 className={cn(
                     "w-full rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
                     "focus:outline-none focus:ring-2",

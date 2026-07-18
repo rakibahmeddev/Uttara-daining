@@ -81,7 +81,7 @@ html {
 
 body {
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--bg-base);
+  background-color: #cbd5e1; /* slightly darker background for desktop space */
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
@@ -108,6 +108,14 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-width: 480px; /* Mobile width constraint */
+  margin: 0 auto;
+  background-color: var(--bg-base); /* Original body background inside the app */
+  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 0, 0, 0.05);
+  position: relative;
+  /* Make #root the containing block for fixed elements */
+  transform: translateZ(0); 
+  overflow-x: hidden;
 }
 
 /* ===========================
@@ -360,17 +368,15 @@ body {
   position: absolute !important;
   top: 12px !important;
   right: 12px !important;
-  background: rgba(10, 15, 30, 0.85) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(249, 115, 22, 0.4) !important;
+  background: linear-gradient(135deg, #f97316, #fbbf24) !important;
   color: #fff !important;
-  font-size: 1.05rem !important;
+  font-size: 1rem !important;
   font-weight: 900 !important;
   padding: 6px 14px !important;
   border-radius: 12px !important;
-  box-shadow: var(--shadow-md) !important;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.45) !important;
   z-index: 10 !important;
+  letter-spacing: 0.02em !important;
 }
 
 /* ===========================
@@ -393,7 +399,7 @@ body {
    Page Container
 =========================== */
 .page-container {
-  max-width: 480px;
+  max-width: 100%;
   margin: 0 auto;
   width: 100%;
 }
@@ -501,7 +507,7 @@ input, select, textarea {
 }
 
 .admin-table thead th {
-  padding: 1rem 1.5rem; /* py-4 px-6 */
+  padding: 0.75rem 0.5rem; /* compact horizontal padding */
   text-align: left;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -514,7 +520,7 @@ input, select, textarea {
 }
 
 .admin-table tbody td {
-  padding: 1rem 1.5rem; /* py-4 px-6 */
+  padding: 0.75rem 0.5rem; /* compact horizontal padding */
   vertical-align: middle;
 }
 

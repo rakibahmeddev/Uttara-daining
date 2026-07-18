@@ -29,7 +29,14 @@ export default function TableSearchBar({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-10 text-sm font-medium text-white placeholder:text-slate-500 transition-all focus:border-violet-500/40 focus:bg-white/[0.07] focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                style={{ 
+                    backgroundColor: "#ffffff", 
+                    color: "#1e293b", 
+                    padding: "10px 12px 10px 36px", 
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0"
+                }}
+                className="w-full text-sm font-medium outline-none transition-all"
             />
             {value && (
                 <button

@@ -4,6 +4,7 @@ import { db } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { placeOrder } from '../../services/db';
 import { Button } from '../../components/ui/Button';
+import { useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
   Plus,
@@ -26,6 +27,7 @@ const TIME_SLOT_COLORS = {
 
 export default function StudentHome() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -36,6 +38,12 @@ export default function StudentHome() {
     quantity: number;
     total: number;
   }>({ show: false, meal: null, quantity: 0, total: 0 });
+
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const isWithinOrderWindow = (currentHour >= 20 && currentHour < 23) || (currentHour === 23 && currentMinute === 0);
+
 
   useEffect(() => {
     fetchMeals();
@@ -73,6 +81,10 @@ export default function StudentHome() {
   const handleOrder = (meal) => {
     if (!currentUser) {
       alert('Please log in to place an order');
+      return;
+    }
+    if (!isWithinOrderWindow) {
+      alert('Orders can only be placed between 8:00 PM and 11:00 PM.');
       return;
     }
     const quantity = quantities[meal.id] || 1;
@@ -133,11 +145,44 @@ export default function StudentHome() {
 
   return (
     <div className="w-full" style={{ width: '100%', margin: '0 auto', padding: '0 20px' }}>
+      {/* ── Delivery Duty Banner ── */}
+      {currentUser?.assignedDeliveryDate === (() => {
+          const now = new Date();
+          return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
+      })() && (
+        <div 
+            className="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-2xl text-white shadow-lg animate-fade-in"
+            style={{ 
+                margin: '24px 0', 
+                padding: '24px 20px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '16px',
+                minHeight: '130px',
+                justifyContent: 'center'
+            }}
+        >
+          <div>
+            <h2 className="font-bold flex items-center gap-2" style={{ fontSize: '20px', marginBottom: '6px' }}>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              Today's Delivery Duty
+            </h2>
+            <p className="text-blue-100 font-medium" style={{ fontSize: '15px' }}>You are today's Delivery Rider!</p>
+          </div>
+          <button 
+            onClick={() => navigate('/student/rider-delivery')}
+            className="w-full bg-white text-indigo-600 hover:bg-blue-50 font-bold rounded-xl shadow-sm transition-all hover:shadow-md active:scale-95"
+            style={{ padding: '14px 24px', fontSize: '16px', textAlign: 'center' }}
+          >
+            Start Delivery 🚀
+          </button>
+        </div>
+      )}
+
       {/* ── Section Header ── */}
       <div className="flex flex-col items-center justify-center text-center w-full py-12 md:py-16" style={{marginBottom: '50px', marginTop:'50px'}}>
         <h2
-          className="text-4xl font-bold mb-1"
-          style={{ color: 'var(--text-primary)' }}
+          className="text-4xl font-bold mb-1 text-slate-800"
         >
           Today's Menu
         </h2>
@@ -149,8 +194,7 @@ export default function StudentHome() {
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <span className="text-5xl">🍽️</span>
           <p
-            className="text-base font-bold"
-            style={{ color: 'var(--text-secondary)' }}
+            className="text-base font-bold text-slate-500"
           >
             No Meals Available
           </p>
@@ -162,8 +206,8 @@ export default function StudentHome() {
           </p>
         </div>
       ) : (
-        /* 2-column grid on mobile, 3 on large screens */
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full" style={{padding: '20px'}}> 
+        /* 2-column grid */
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full"> 
           {meals.map((meal) => {
             const quantity = quantities[meal.id] || 1;
             const totalPrice = meal.price * quantity;
@@ -198,7 +242,15 @@ export default function StudentHome() {
 
                   {/* Time slot badge */}
                   <div
-                    className={`absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full font-bold text-white text-[13px] px-2.5 py-1 bg-gradient-to-r ${gradient} shadow-lg`}
+                    className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full font-bold text-white"
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.72)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      fontSize: '12px',
+                      padding: '5px 12px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                    }}
                   >
                     {emoji}{' '}
                     <span className="capitalize">
@@ -272,23 +324,35 @@ export default function StudentHome() {
                       ⚠️ Insufficient balance
                     </p>
                   )}
+                  {!isWithinOrderWindow && (
+                    <p className="text-[10px] text-orange-400 text-center font-semibold">
+                      Ordering is only open 8:00 PM - 11:00 PM
+                    </p>
+                  )}
 
                   {/* Order button */}
                   <button
                     onClick={() => handleOrder(meal)}
-                    disabled={isLoading || !canAfford}
-                    className="w-full py-[13px] rounded-xl text-[16px] font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-95 hover:-translate-y-0.5"
+                    disabled={isLoading || !canAfford || !isWithinOrderWindow}
+                    className="w-full py-[13px] rounded-xl text-[15px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
                     style={
-                      isLoading || !canAfford
+                      isLoading || !isWithinOrderWindow
                         ? {
-                            background: 'rgba(255,255,255,0.08)',
-                            opacity: 0.5,
+                            background: 'rgba(156,163,175,0.3)',
+                            color: 'rgba(255,255,255,0.5)',
+                            cursor: 'not-allowed',
+                          }
+                        : !canAfford
+                        ? {
+                            background: 'rgba(239,68,68,0.1)',
+                            border: '1.5px solid rgba(239,68,68,0.35)',
+                            color: '#f87171',
                             cursor: 'not-allowed',
                           }
                         : {
-                            background:
-                              'linear-gradient(135deg, #f97316, #fbbf24)',
+                            background: 'linear-gradient(135deg, #f97316, #fbbf24)',
                             boxShadow: '0 4px 12px rgba(249,115,22,0.3)',
+                            color: '#fff',
                           }
                     }
                   >
@@ -296,6 +360,11 @@ export default function StudentHome() {
                       <>
                         <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         Ordering...
+                      </>
+                    ) : !canAfford ? (
+                      <>
+                        <span style={{ fontSize: '14px' }}>🔒</span>
+                        Low Balance
                       </>
                     ) : (
                       <>

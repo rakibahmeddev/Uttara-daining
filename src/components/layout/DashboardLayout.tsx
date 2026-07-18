@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { LogOut, Menu, X, ChefHat, Bell, LucideIcon } from "lucide-react";
+import { LogOut, Menu, X, ChefHat, Bell, LucideIcon, Wallet } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../utils/cn";
 import AlertsBanner from "./AlertsBanner";
@@ -43,15 +43,14 @@ export default function DashboardLayout({
 
     const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
         <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-5">
+            <div className="flex items-center justify-between border-b border-white/[0.08]" style={{ padding: "16px 18px" }}>
                 {!collapsed ? (
                     <Link to={basePath} className="flex items-center gap-3">
-                        <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                            style={{ background: accentGradient, boxShadow: `0 0 20px ${accentGlow}` }}
-                        >
-                            <ChefHat size={20} className="text-white" />
-                        </div>
+                        <img
+                            src="/logo.png"
+                            alt="Uttara Hall Dining"
+                            style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }}
+                        />
                         <div>
                             <p className="text-base font-black leading-tight tracking-tight">
                                 <span className="gradient-text">Uttara</span>
@@ -63,28 +62,21 @@ export default function DashboardLayout({
                         </div>
                     </Link>
                 ) : (
-                    <div
-                        className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl"
-                        style={{ background: accentGradient }}
-                    >
-                        <ChefHat size={16} className="text-white" />
-                    </div>
+                    <img
+                        src="/logo.png"
+                        alt="logo"
+                        style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px' }}
+                    />
                 )}
-                <button
-                    onClick={() => setDesktopCollapsed(!desktopCollapsed)}
-                    className="hidden items-center justify-center rounded-lg p-1.5 text-white/35 transition-colors hover:bg-white/[0.06] md:flex"
-                >
-                    {collapsed ? <Menu size={15} /> : <X size={15} />}
-                </button>
             </div>
 
             {!collapsed && (
-                <div className="px-5 pb-2 pt-6">
+                <div style={{ padding: "24px 20px 8px" }}>
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">Main Menu</p>
                 </div>
             )}
 
-            <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
+            <nav style={{ flex: 1, overflowY: "auto", padding: "4px 12px 8px" }}>
                 {navItems.map(({ path, label, icon: Icon, color }) => {
                     const active = isActive(path);
                     return (
@@ -94,11 +86,14 @@ export default function DashboardLayout({
                             onClick={() => setSidebarOpen(false)}
                             title={collapsed ? label : ""}
                             className={cn(
-                                "relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200",
+                                "relative flex items-center gap-3 rounded-xl transition-all duration-200",
                                 collapsed && "justify-center",
                                 active ? "border" : "border border-transparent hover:bg-white/[0.05]"
                             )}
-                            style={active ? { background: `${color}22`, borderColor: `${color}35` } : undefined}
+                            style={active
+                                ? { background: `${color}22`, borderColor: `${color}35`, padding: "12px 14px", marginBottom: "4px" }
+                                : { padding: "12px 14px", marginBottom: "4px" }
+                            }
                         >
                             {active && (
                                 <span
@@ -125,7 +120,7 @@ export default function DashboardLayout({
                 })}
             </nav>
 
-            <div className="space-y-2 border-t border-white/[0.08] p-3">
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", padding: "14px 12px", display: "flex", flexDirection: "column", gap: "10px" }}>
                 {!collapsed && (
                     <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.05] p-3">
                         <div
@@ -137,6 +132,9 @@ export default function DashboardLayout({
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold text-white">{currentUser?.name}</p>
                             <p className="text-[11px] text-white/40">{roleLabel}</p>
+                            {(currentUser as any)?.balance !== undefined && (
+                                <p className="text-[11px] font-bold mt-0.5" style={{ color: '#fbbf24' }}>৳{(currentUser as any).balance || 0}</p>
+                            )}
                         </div>
                     </div>
                 )}
@@ -161,87 +159,74 @@ export default function DashboardLayout({
 
     return (
         <div className="flex h-screen overflow-hidden bg-[#0b1120]">
-            {/* Mobile header */}
-            <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-white/[0.08] bg-slate-900/95 px-4 backdrop-blur-md md:hidden">
+            {/* Mobile header (always visible in mobile-only view) */}
+            <header className="fixed left-0 right-0 top-0 z-50 flex h-14 items-center justify-between border-b border-white/[0.08] bg-slate-900/95 backdrop-blur-md" style={{ paddingLeft: "16px", paddingRight: "16px" }}>
                 <Link to={basePath} className="flex items-center gap-2">
-                    <div
-                        className="flex h-8 w-8 items-center justify-center rounded-xl"
-                        style={{ background: accentGradient }}
-                    >
-                        <ChefHat size={15} className="text-white" />
-                    </div>
+                    <img
+                        src="/logo.png"
+                        alt="Uttara Hall Dining"
+                        style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '6px' }}
+                    />
                     <span className="text-sm font-black text-white">
                         <span className="gradient-text">Uttara</span> Dining
                     </span>
                 </Link>
-                <button
-                    onClick={() => setSidebarOpen(true)}
-                    className="rounded-xl bg-white/[0.06] p-2 text-slate-300"
-                >
-                    <Menu size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                    {/* Balance chip */}
+                    {(currentUser as any)?.balance !== undefined && (
+                        <div
+                            className="flex items-center gap-1.5 rounded-full text-xs font-bold"
+                            style={{
+                                background: "rgba(251,191,36,0.12)",
+                                border: "1px solid rgba(251,191,36,0.3)",
+                                padding: '5px 10px',
+                                color: '#fbbf24',
+                            }}
+                        >
+                            <Wallet size={13} />
+                            <span>৳{(currentUser as any).balance || 0}</span>
+                        </div>
+                    )}
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="rounded-xl bg-white/[0.06] text-slate-300"
+                        style={{ padding: "10px 12px" }}
+                    >
+                        <Menu size={26} />
+                    </button>
+                </div>
             </header>
 
-            {/* Mobile drawer */}
+            {/* Mobile drawer (always use mobile drawer) */}
             {sidebarOpen && (
-                <div className="fixed inset-0 z-50 flex animate-fade-in md:hidden">
+                <div className="fixed inset-0 z-50 flex animate-fade-in">
                     <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
                     <aside className="relative flex h-full w-72 animate-slide-left flex-col border-r border-white/[0.08] bg-[#0f172a]">
                         <button
                             onClick={() => setSidebarOpen(false)}
-                            className="absolute right-4 top-4 rounded-lg bg-white/[0.07] p-1.5 text-white/40"
+                            style={{ position: "absolute", right: "14px", top: "14px", background: "rgba(239,68,68,0.85)", border: "none", borderRadius: "8px", padding: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                         >
-                            <X size={18} />
+                            <X size={20} color="#ffffff" />
                         </button>
                         <SidebarContent collapsed={false} />
                     </aside>
                 </div>
             )}
 
-            {/* Desktop sidebar */}
-            <aside
-                className={cn(
-                    "hidden shrink-0 flex-col border-r border-white/[0.07] bg-[#0f172a] transition-all duration-300 md:flex",
-                    desktopCollapsed ? "w-[70px]" : "w-64"
-                )}
-                style={{ boxShadow: "2px 0 24px rgba(0,0,0,0.25)" }}
-            >
-                <SidebarContent collapsed={desktopCollapsed} />
+            {/* Desktop sidebar - COMPLETELY HIDDEN for mobile-only view */}
+            <aside className="hidden">
             </aside>
 
             {/* Main */}
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                <header className="admin-topbar hidden h-16 shrink-0 items-center justify-between px-6 md:flex lg:px-8">
-                    <div>
-                        <h1 className="text-lg font-bold text-white">{currentPage?.label || panelLabel}</h1>
-                        <p className="text-xs text-slate-500">
-                            {new Date().toLocaleDateString("en-US", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                            })}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Link
-                            to={`${basePath}/notifications`}
-                            className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-                        >
-                            <Bell size={16} />
-                        </Link>
-                        <div
-                            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white"
-                            style={{ background: accentGradient, boxShadow: `0 0 12px ${accentGlow}` }}
-                        >
-                            {currentUser?.name?.charAt(0)?.toUpperCase() || "A"}
-                        </div>
-                    </div>
+                {/* Desktop topbar - COMPLETELY HIDDEN for mobile-only view */}
+                <header className="hidden">
                 </header>
 
                 <main className="min-w-0 flex-1 overflow-y-auto bg-[#0b1120]">
-                    <div className="h-14 md:hidden" />
-                    <div className="p-4 sm:p-6 lg:p-8">
+                    {/* Spacer for mobile header */}
+                    <div className="h-14 block" />
+                    <div style={{ padding: "20px 18px" }}>
                         <AlertsBanner theme="dark" />
                         <Outlet />
                     </div>
@@ -280,9 +265,9 @@ export function DashboardPage({
 /** Dark glass table card wrapper */
 export function DashboardTableCard({ children, toolbar }: { children: React.ReactNode; toolbar?: React.ReactNode }) {
     return (
-        <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/60 shadow-xl shadow-black/20 backdrop-blur-sm">
+        <div className="overflow-hidden rounded-2xl shadow-xl" style={{ background: "#ffffff", border: "1px solid #e2e8f0" }}>
             {toolbar && (
-                <div className="border-b border-white/[0.06] px-5 py-4">{toolbar}</div>
+                <div className="border-b border-slate-100 px-5 py-4" style={{ background: "#f8fafc" }}>{toolbar}</div>
             )}
             <div className="overflow-x-auto">{children}</div>
         </div>

@@ -21,6 +21,7 @@ import BalanceRequests from "./pages/admin/BalanceRequests";
 import AdminProfile from "./pages/admin/AdminProfile";
 import Notifications from "./pages/admin/Notifications";
 import AdminCustomCSS from "./pages/admin/AdminCustomCSS";
+import AssignDelivery from "./pages/admin/AssignDelivery";
 
 // Manager Pages
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
@@ -35,6 +36,7 @@ import StudentHome from "./pages/student/StudentHome";
 import OrderHistory from "./pages/student/OrderHistory";
 import Profile from "./pages/student/Profile";
 import WithdrawalRequest from "./pages/student/WithdrawalRequest";
+import RiderDeliveryScreen from "./pages/student/RiderDeliveryScreen";
 
 function HomeRedirect() {
   const { userRole } = useAuth();
@@ -65,6 +67,7 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="meals" element={<Meals />} />
               <Route path="users" element={<Users />} />
+              <Route path="assign-delivery" element={<AssignDelivery />} />
               <Route path="orders" element={<Orders />} />
               <Route path="balance-requests" element={<BalanceRequests />} />
               <Route path="notifications" element={<Notifications />} />
@@ -83,8 +86,10 @@ function App() {
               }
             >
               <Route index element={<ManagerDashboard />} />
+              <Route path="order" element={<StudentHome />} />
               <Route path="meals" element={<Meals />} />
               <Route path="orders" element={<Orders />} />
+              <Route path="assign-delivery" element={<AssignDelivery />} />
               <Route path="users" element={<ManagerUsers />} />
               <Route path="balance-requests" element={<ManagerBalanceRequests />} />
               <Route path="notifications" element={<ManagerNotifications />} />
@@ -106,6 +111,7 @@ function App() {
               <Route path="history" element={<OrderHistory />} />
               <Route path="withdrawal" element={<WithdrawalRequest />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
             </Route>
 
             <Route path="/" element={<Home />} />

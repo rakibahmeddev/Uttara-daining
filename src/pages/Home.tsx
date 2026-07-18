@@ -646,7 +646,7 @@ export default function Home() {
       style={{ background: 'var(--bg-base)' }}
     >
       {/* ════ NAVBAR ════ */}
-      <Header variant="public" onLoginRequest={() => setAuthModal('login')} />
+      <Header variant="public" onLoginRequest={() => setAuthModal('login')} onRegisterRequest={() => setAuthModal('register')} />
 
       {/* ════ MENU SECTION ════ */}
       <main
@@ -703,7 +703,7 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
+          <div className="grid grid-cols-2 gap-4 w-full max-w-2xl mx-auto">
             {meals.map((meal, i) => (
               <MealCard
                 key={meal.id}
@@ -804,7 +804,7 @@ function MealCard({
         {currentUser && userRole === 'student' ? (
           <button
             onClick={() => addToCart(meal)}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-lg sm:text-base font-bold text-white transition-all active:scale-95"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-base md:text-lg font-bold text-white transition-all active:scale-95"
             style={{
               background: 'linear-gradient(135deg,#f97316,#fbbf24)',
               boxShadow: '0 4px 14px rgba(249,115,22,0.28)',

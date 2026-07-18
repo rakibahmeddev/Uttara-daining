@@ -241,7 +241,7 @@ export default function AdminDashboard() {
             icon: Wallet,
             iconBg: "linear-gradient(135deg,#059669,#10b981)",
             glow: "#10b981",
-            badge: "+12.5%",
+          
             up: true,
         },
         {
@@ -251,7 +251,7 @@ export default function AdminDashboard() {
             icon: ShoppingBag,
             iconBg: "linear-gradient(135deg,#0284c7,#38bdf8)",
             glow: "#38bdf8",
-            badge: "+8.2%",
+          
             up: true,
         },
         {
@@ -261,7 +261,7 @@ export default function AdminDashboard() {
             icon: Clock,
             iconBg: "linear-gradient(135deg,#d97706,#fbbf24)",
             glow: "#fbbf24",
-            badge: "-3.1%",
+            
             up: false,
         },
         {
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
             icon: Users,
             iconBg: "linear-gradient(135deg,#7c3aed,#a78bfa)",
             glow: "#a78bfa",
-            badge: "+21.4%",
+            
             up: true,
         },
     ];
@@ -346,27 +346,8 @@ export default function AdminDashboard() {
 
             {/* ── Tab Switcher ── */}
             <div className="flex items-center gap-2 border-b border-slate-200 pb-px">
-                <button
-                    onClick={() => setActiveTab('overview')}
-                    className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
-                        activeTab === 'overview'
-                            ? 'border-orange-500 text-orange-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-800'
-                    }`}
-                >
-                    Overview
-                </button>
-                <button
-                    onClick={() => setActiveTab('settings')}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
-                        activeTab === 'settings'
-                            ? 'border-orange-500 text-orange-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-800'
-                    }`}
-                >
-                    <Settings size={16} />
-                    Settings
-                </button>
+               
+                
             </div>
 
             {activeTab === 'overview' ? (
@@ -375,13 +356,13 @@ export default function AdminDashboard() {
                         Stat Cards — uniform p-6, flex-col justify-between
                     ══════════════════════════════════════ */}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 gap-4">
                 {statCards.map((stat, i) => {
                     const Icon = stat.icon;
                     return (
                         <Card
                             key={i}
-                            className="admin-stat-card hover:-translate-y-0.5 transition-transform duration-200 cursor-default"
+                            className="admin-stat-card hover:-translate-y-0.5 transition-transform duration-200 cursor-default "
                             style={{ boxShadow: "0 2px 12px rgba(15,23,42,0.07)" } as React.CSSProperties}
                         >
                             {/* top row: icon + trend badge — never overflow */}
@@ -403,8 +384,7 @@ export default function AdminDashboard() {
                                         : { background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" }
                                     }
                                 >
-                                    {stat.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                                    {stat.badge}
+                                    
                                 </span>
                             </div>
 
@@ -424,9 +404,9 @@ export default function AdminDashboard() {
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 gap-5">
                 {/* Area Chart ── 2 cols */}
-                <Card className="admin-chart-revenue lg:col-span-2 p-6">
+                <Card className="admin-chart-revenue p-6">
                     {/* header */}
                     <div className="flex items-center justify-between mb-5 gap-4">
                         <div>

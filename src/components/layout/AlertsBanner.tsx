@@ -29,14 +29,14 @@ export default function AlertsBanner({ theme = "light" }: { theme?: "light" | "d
     const isLight = theme === "light";
 
     return (
-        <div className="mb-6 space-y-3 w-full" style={{ display: 'block', margin: '0 30px', padding: '0' }}>
+        <div className="mb-6 space-y-3 w-full max-w-full" style={{ display: 'block', padding: '0 16px', marginTop: '24px' }}>
             <div>
                 {hasNotice && (
                 <div className={cn(
                     "relative overflow-hidden rounded-2xl border p-4 shadow-sm",
                     isLight ? "border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 shadow-amber-500/10" 
                             : "border-amber-500/40 bg-gradient-to-r from-amber-500/15 to-orange-500/10 shadow-amber-500/5"
-                )} style={{padding: '20px 20px', margin: '20px'}}>
+                )} style={{padding: '20px'}}>
                     <div className={cn("pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full blur-2xl", isLight ? "bg-amber-300/30" : "bg-amber-500/10")} />
                     <div className="relative flex items-start gap-3">
                         <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", isLight ? "bg-amber-200 text-amber-700" : "bg-amber-500/20 text-amber-400")}>
@@ -67,7 +67,7 @@ export default function AlertsBanner({ theme = "light" }: { theme?: "light" | "d
                             style.border,
                             style.bg
                         )}
-                        style={{padding: '20px 20px', margin: '20px'}}
+                        style={{padding: '20px'}}
                     >
                         <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", style.iconBg, style.text)}>
                             <Icon size={16} />

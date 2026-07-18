@@ -7,26 +7,15 @@ export default function Footer() {
             style={{ maxWidth: "1200px", paddingLeft: "20px", paddingRight: "20px" }}
         >
             <div
-                className="px-5 sm:px-10 flex flex-col sm:flex-row items-center justify-between gap-4 w-full"
+                className="px-5 sm:px-10 flex items-center justify-center w-full"
                 style={{
                     paddingTop: "20px",
                     paddingBottom: "20px",
                     borderTop: "1px solid var(--border-color)",
                 }}
             >
-                {/* Brand */}
-                <div className="flex items-center gap-2">
-                    <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center"
-                        style={{ background: "linear-gradient(135deg,#f97316,#fbbf24)" }}
-                    >
-                        <ChefHat size={14} className="text-white" />
-                    </div>
-                    <span className="text-sm font-bold gradient-text">Uttara Dining</span>
-                </div>
-
                 {/* Copyright */}
-                <p style={{ color: "var(--text-muted)", fontSize: "15px" }}>
+                <p className="text-center" style={{ color: "var(--text-muted)", fontSize: "15px" }}>
                     © {new Date().getFullYear()} Uttara Dining. All rights reserved. Design by{" "}
                     <a
                         href="https://rakibmiah.vercel.app/"

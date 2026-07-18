@@ -26,7 +26,7 @@ export default function Notifications() {
 
     const [noticeMessage, setNoticeMessage] = useState("");
     const [paymentNumber, setPaymentNumber] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("bKash");
+   
 
     useEffect(() => {
         const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"));
@@ -50,7 +50,7 @@ export default function Notifications() {
     const openNoticeModal = () => {
         setNoticeMessage(permanentNotice?.message || "");
         setPaymentNumber(permanentNotice?.paymentNumber || "");
-        setPaymentMethod(permanentNotice?.paymentMethod || "bKash");
+        
         setIsNoticeModalOpen(true);
     };
 
@@ -241,21 +241,11 @@ export default function Notifications() {
                 size="md"
             >
                 <form onSubmit={handleSaveNotice} className="space-y-4">
-                    <FormField label="Notice Message" hint="e.g. For bKash/Nagad cash-in, send money to 01XXXXXXXXX">
-                        <Textarea variant="dark" rows={3} value={noticeMessage} onChange={(e) => setNoticeMessage(e.target.value)} required />
+                    <FormField label="Notice Message" >
+                        <Textarea variant="dark" rows={5} value={noticeMessage} onChange={(e) => setNoticeMessage(e.target.value)} required />
                     </FormField>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Payment Method">
-                            <Select variant="dark" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                                <option value="bKash">bKash</option>
-                                <option value="Nagad">Nagad</option>
-                            </Select>
-                        </FormField>
-                        <FormField label="Payment Number">
-                            <Input variant="dark" value={paymentNumber} onChange={(e) => setPaymentNumber(e.target.value)} placeholder="01XXXXXXXXX" />
-                        </FormField>
-                    </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    
+                    <Button type="submit" className="w-full" disabled={loading} style={{padding: '5px 12px'}}>
                         <Megaphone size={16} className="mr-2" />
                         {loading ? "Saving…" : "Save Permanent Notice"}
                     </Button>

@@ -61,8 +61,8 @@ export default function Modal({
                     )}
 
                     {/* Header — fixed, never scrolls away */}
-                    <div className="relative shrink-0 border-b px-6 pt-6 pb-4"
-                        style={{ borderColor: isGlass ? "rgba(255,255,255,0.08)" : "#f1f5f9" }}
+                    <div className="relative shrink-0 border-b"
+                        style={{ borderColor: isGlass ? "rgba(255,255,255,0.08)" : "#f1f5f9", padding: "24px 24px 16px 24px" }}
                     >
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
@@ -97,7 +97,7 @@ export default function Modal({
                     </div>
 
                     {/* Body — scrollable when content is tall */}
-                    <div className={cn("relative flex-1 overflow-y-auto px-6 py-5", isGlass ? "text-slate-200" : "text-slate-700")}>
+                    <div className={cn("relative flex-1 overflow-y-auto", isGlass ? "text-slate-200" : "text-slate-700")} style={{ padding: "24px" }}>
                         {children}
                     </div>
                 </div>
