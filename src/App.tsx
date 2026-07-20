@@ -4,7 +4,6 @@ import { CartProvider } from "./context/CartContext";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
-import Home from "./pages/Home";
 
 // Layouts
 import AdminLayout from "./components/layout/AdminLayout";
@@ -114,7 +113,7 @@ function App() {
               <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
             </Route>
 
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<StudentHome />} />
           </Routes>
         </Router>
       </CartProvider>

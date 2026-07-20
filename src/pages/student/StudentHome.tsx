@@ -388,7 +388,7 @@ export default function StudentHome() {
         >
           <div 
             className="w-full max-w-md animate-fade-in-up overflow-hidden rounded-2xl shadow-2xl flex flex-col max-h-[85vh]"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', margin: '0 20px' }}
           >
             {/* Modal header */}
             <div
