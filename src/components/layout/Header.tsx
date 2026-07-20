@@ -69,7 +69,7 @@ export default function Header({ variant, onLoginRequest, onRegisterRequest, onM
         role === "admin" ? "/admin" : role === "manager" ? "/manager" : "/student";
 
     // Brand logo destination
-    const logoHref = variant === "public" ? "/" : dashboardPath;
+    const logoHref = "/";
 
     // Get correct nav array based on role
     const navItems = role === "admin" ? ADMIN_NAV : role === "manager" ? MANAGER_NAV : STUDENT_NAV;

@@ -115,19 +115,21 @@ export default function Orders() {
             </div>
 
             <div className="flex flex-col gap-4 mb-6">
-                <div className="flex space-x-1 rounded-xl bg-slate-50 border border-slate-100 p-1 w-fit">
+                <div className="flex flex-wrap gap-1 rounded-xl bg-slate-50 border border-slate-100 p-1 w-full max-w-full">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setFilter(tab.id)}
                             style={{
-                                padding: "6px 14px",
+                                padding: "6px 10px",
                                 borderRadius: "8px",
                                 fontSize: "13px",
                                 fontWeight: 600,
                                 cursor: "pointer",
                                 border: "none",
                                 transition: "all 0.2s",
+                                flex: "1 1 auto",
+                                textAlign: "center",
                                 background: filter === tab.id
                                     ? "linear-gradient(to right, #f97316, #f59e0b)"
                                     : "transparent",

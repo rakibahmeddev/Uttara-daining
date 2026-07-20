@@ -29,6 +29,7 @@ export default function Meals() {
     const [imageFile, setImageFile] = useState(null);
     const [selectedLibraryImage, setSelectedLibraryImage] = useState(null);
     const [manualImageUrl, setManualImageUrl] = useState("");
+    const [isTimeRestricted, setIsTimeRestricted] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
@@ -52,6 +53,7 @@ export default function Meals() {
         setImageFile(null);
         setSelectedLibraryImage(null);
         setManualImageUrl("");
+        setIsTimeRestricted(true);
         setEditingMeal(null);
     };
 
@@ -68,6 +70,7 @@ export default function Meals() {
             setOrderingEndTime(meal.orderingEndTime || "");
             setSelectedLibraryImage(meal.image); // Pre-fill with existing image
             setManualImageUrl(meal.image); // Also set manual URL for editing visibility
+            setIsTimeRestricted(meal.isTimeRestricted !== false);
         } else {
             resetForm();
         }
@@ -96,6 +99,7 @@ export default function Meals() {
                 orderingStartTime,
                 orderingEndTime,
                 image: imageUrl,
+                isTimeRestricted,
                 available: true,
             };
 
@@ -311,8 +315,22 @@ export default function Meals() {
                         </div>
                     </div>
 
+                    {/* Time Restriction Toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                        <input 
+                            type="checkbox" 
+                            id="timeRestrictToggle" 
+                            checked={isTimeRestricted} 
+                            onChange={(e) => setIsTimeRestricted(e.target.checked)} 
+                            style={{ width: '18px', height: '18px', accentColor: '#f97316', cursor: 'pointer' }}
+                        />
+                        <label htmlFor="timeRestrictToggle" style={{ fontSize: "14px", fontWeight: 600, color: "rgba(255,255,255,0.9)", cursor: "pointer" }}>
+                            Restrict Order Time (8:00 PM - 11:00 PM)
+                        </label>
+                    </div>
+
                     {/* Order Time Helper */}
-                    {mealDate && (() => {
+                    {mealDate && isTimeRestricted && (() => {
                         const d = new Date(mealDate);
                         if (!isNaN(d.getTime())) {
                             d.setDate(d.getDate() - 1);
@@ -330,6 +348,16 @@ export default function Meals() {
                         }
                         return null;
                     })()}
+                    {/* Image URL */}
+                    <div style={{ marginBottom: "16px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "rgba(255,255,255,0.85)" }}>Image URL (Optional)</label>
+                        <Input 
+                            value={manualImageUrl} 
+                            onChange={(e) => setManualImageUrl(e.target.value)} 
+                            placeholder="https://example.com/image.jpg" 
+                        />
+                    </div>
+
                     {/* Description */}
                     <div style={{ marginBottom: "16px" }}>
                         <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "rgba(255,255,255,0.85)" }}>Description</label>

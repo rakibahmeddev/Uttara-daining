@@ -20,7 +20,7 @@ const navItems: NavItem[] = [
     { path: "/admin/balance-requests", label: "Wallet", icon: DollarSign, color: "#f59e0b" },
     { path: "/admin/notifications", label: "Notifications", icon: Bell, color: "#ec4899" },
     { path: "/admin/reports", label: "Reports", icon: FileText, color: "#6366f1" },
-    { path: "/admin/custom-css", label: "Custom CSS", icon: Paintbrush, color: "#f43f5e" },
+    // { path: "/admin/custom-css", label: "Custom CSS", icon: Paintbrush, color: "#f43f5e" },
 ];
 
 export default function AdminLayout() {

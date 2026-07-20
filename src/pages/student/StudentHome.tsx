@@ -83,7 +83,8 @@ export default function StudentHome() {
       alert('Please log in to place an order');
       return;
     }
-    if (!isWithinOrderWindow) {
+    const isRestricted = meal.isTimeRestricted !== false;
+    if (isRestricted && !isWithinOrderWindow) {
       alert('Orders can only be placed between 8:00 PM and 11:00 PM.');
       return;
     }
@@ -217,6 +218,8 @@ export default function StudentHome() {
             const emoji = TIME_SLOT_EMOJIS[timeKey] || '🍽️';
             const gradient =
               TIME_SLOT_COLORS[timeKey] || 'from-orange-500 to-amber-400';
+            const isRestricted = meal.isTimeRestricted !== false;
+            const mealCanBeOrdered = !isRestricted || isWithinOrderWindow;
 
             return (
               <div key={meal.id} className="meal-card w-full flex flex-col">
@@ -258,18 +261,17 @@ export default function StudentHome() {
                     </span>
                   </div>
 
-                  {/* Price */}
-                  <div className="custom-price-badge">৳{totalPrice}</div>
                 </div>
 
                 {/* ── Content ── */}
                 <div
-                  className="meal-card-body flex flex-col flex-1 gap-2"
+                  className="meal-card-body flex flex-col flex-1"
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     flex: 1,
-                    padding: '16px',
+                    padding: '8px',
+                    gap: '4px',
                   }}
                 >
                   <div>
@@ -281,19 +283,21 @@ export default function StudentHome() {
                     )}
                   </div>
 
-                  {/* Date badge */}
-                  {meal.date && (
-                    <div
-                      className="flex items-center gap-1 text-[10px]"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      <Calendar size={10} />
-                      <span>{meal.date}</span>
+                  {/* Date & Price */}
+                  <div className="flex flex-col gap-0.5 mt-0.5">
+                    {meal.date && (
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                        <Calendar size={14} className="text-blue-500 drop-shadow-sm" />
+                        <span>{meal.date}</span>
+                      </div>
+                    )}
+                    <div className="text-[13px] font-bold text-slate-700 flex items-center gap-1">
+                      Price: <span className="text-[14px] font-black text-orange-600">৳{totalPrice}</span>
                     </div>
-                  )}
+                  </div>
 
                   {/* Qty selector */}
-                  <div className="flex items-center gap-2 mt-auto">
+                  <div className="flex items-center gap-2" style={{ marginTop: '6px' }}>
                     <button
                       onClick={() => updateQuantity(meal.id, -1)}
                       disabled={isLoading}
@@ -324,7 +328,7 @@ export default function StudentHome() {
                       ⚠️ Insufficient balance
                     </p>
                   )}
-                  {!isWithinOrderWindow && (
+                  {!mealCanBeOrdered && (
                     <p className="text-[10px] text-orange-400 text-center font-semibold">
                       Ordering is only open 8:00 PM - 11:00 PM
                     </p>
@@ -333,10 +337,10 @@ export default function StudentHome() {
                   {/* Order button */}
                   <button
                     onClick={() => handleOrder(meal)}
-                    disabled={isLoading || !canAfford || !isWithinOrderWindow}
-                    className="w-full py-[13px] rounded-xl text-[15px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+                    disabled={isLoading || !canAfford || !mealCanBeOrdered}
+                    className="w-full py-[9px] rounded-xl text-[14px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
                     style={
-                      isLoading || !isWithinOrderWindow
+                      isLoading || !mealCanBeOrdered
                         ? {
                             background: 'rgba(156,163,175,0.3)',
                             color: 'rgba(255,255,255,0.5)',

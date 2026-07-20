@@ -1,4 +1,24 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import Header from "./components/layout/Header";
+import Footer from "./components/layout/Footer";
+
+function PublicLayout({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  return (
+    <div className="min-h-screen flex flex-col w-full relative overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
+      <Header 
+        variant="public" 
+        onLoginRequest={() => navigate("/login")}
+        onRegisterRequest={() => navigate("/register")}
+      />
+      <main className="flex-1 w-full flex flex-col" style={{ marginBottom: '40px' }}>
+         {children}
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import Login from "./pages/auth/Login";
@@ -113,7 +133,7 @@ function App() {
               <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
             </Route>
 
-            <Route path="/" element={<StudentHome />} />
+            <Route path="/" element={<PublicLayout><StudentHome /></PublicLayout>} />
           </Routes>
         </Router>
       </CartProvider>

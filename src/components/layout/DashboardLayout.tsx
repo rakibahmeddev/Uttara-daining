@@ -45,7 +45,7 @@ export default function DashboardLayout({
         <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-white/[0.08]" style={{ padding: "16px 18px" }}>
                 {!collapsed ? (
-                    <Link to={basePath} className="flex items-center gap-3">
+                    <Link to="/" className="flex items-center gap-3">
                         <img
                             src="/logo.png"
                             alt="Uttara Hall Dining"
@@ -62,11 +62,13 @@ export default function DashboardLayout({
                         </div>
                     </Link>
                 ) : (
-                    <img
-                        src="/logo.png"
-                        alt="logo"
-                        style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px' }}
-                    />
+                    <Link to="/">
+                        <img
+                            src="/logo.png"
+                            alt="logo"
+                            style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px' }}
+                        />
+                    </Link>
                 )}
             </div>
 
