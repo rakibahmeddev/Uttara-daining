@@ -383,11 +383,11 @@ export default function StudentHome() {
       {/* ── Confirmation Modal ── */}
       {confirmModal.show && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
           style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',  }}
         >
           <div 
-            className="w-full max-w-md animate-fade-in-up  overflow-hidden rounded-2xl shadow-2xl"
+            className="w-full max-w-md animate-fade-in-up overflow-hidden rounded-2xl shadow-2xl flex flex-col max-h-[85vh]"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}
           >
             {/* Modal header */}
@@ -419,7 +419,7 @@ export default function StudentHome() {
             </div>
 
             {/* Modal body */}
-            <div className="space-y-4" style={{ padding: '20px' }}>
+            <div className="space-y-4 overflow-y-auto flex-1" style={{ padding: '20px' }}>
               {/* Meal info */}
               <div
                 className="flex items-center space-x-4 p-4 rounded-xl"
