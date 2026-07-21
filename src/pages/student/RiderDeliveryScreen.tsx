@@ -256,125 +256,144 @@ export default function RiderDeliveryScreen() {
 
       {activeTab === 'pending' && (
         <>
-          {orders.length === 0 ? (
-            <div className="max-w-2xl mx-auto p-12 text-center bg-white rounded-3xl shadow-sm border border-gray-100 m-6 mt-8 animate-fade-in-up">
-              <div className="text-6xl mb-6">🎉</div>
-              <h2 className="text-3xl font-bold text-gray-900">All caught up!</h2>
-              <p className="text-lg text-gray-500 mt-2">There are no pending deliveries remaining for today.</p>
-            </div>
-          ) : (
-            <>
-              {/* Header Info */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ padding: '8px 16px 16px 16px' }}>
-                <div>
-                  <h1 className="font-bold tracking-tight" style={{ color: '#0f172a', fontSize: '20px' }}>To Deliver</h1>
-                  <p className="font-medium" style={{ color: '#475569', fontSize: '13px', marginTop: '2px' }}>Today's non-delivered orders grouped by room.</p>
-                </div>
-              </div>
-
-      {/* Orders Grouped by Room */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '0 12px 12px 12px' }}>
-        {Object.entries(ordersByRoom).map(([room, roomOrders]) => (
-          <div key={room} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-
-            {/* Room Header */}
-            <div className="bg-slate-50 border-b border-gray-200 flex items-center justify-between" style={{ padding: '10px 16px' }}>
-              <h2 className="font-bold text-slate-800 flex items-center gap-2" style={{ fontSize: '16px' }}>
-                <svg style={{ width: '16px', height: '16px' }} className="text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                </svg>
-                Room {room}
-              </h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="font-bold text-slate-600 bg-white rounded-full border border-gray-200 shadow-sm" style={{ padding: '3px 10px', fontSize: '11px' }}>
-                  {roomOrders.length} {roomOrders.length === 1 ? 'Order' : 'Orders'}
-                </span>
-                <button
-                  onClick={() => openGuestModal(room)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center gap-1"
-                  style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >
-                  <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
-                  </svg>
-                  Add New
-                </button>
-              </div>
-            </div>
-
-            {/* Room Orders Table */}
-            <div className="overflow-x-auto" style={{ padding: '0 16px 8px 16px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr className="border-b-2 border-slate-200 text-slate-400" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    <th style={{ padding: '10px 6px 8px 0' }}>User ID</th>
-                    <th style={{ padding: '10px 6px 8px 6px' }}>Order Details</th>
-                    <th style={{ padding: '10px 6px 8px 6px' }}>Order Time</th>
-                    <th style={{ padding: '10px 0 8px 6px', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roomOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td style={{ padding: '12px 6px 12px 0', verticalAlign: 'middle', minWidth: '90px' }}>
-                        <div className="font-bold text-slate-800" style={{ fontSize: '13px', marginBottom: '2px' }}>
-                          {order.userName || "Unknown"}
-                          {(order as any).isGuestOrder && (
-                            <span className="ml-1 text-orange-600 bg-orange-50 rounded" style={{ fontSize: '10px', padding: '1px 5px', fontWeight: 700 }}>Guest</span>
-                          )}
-                        </div>
-                        <div className="font-semibold" style={{ fontSize: '11px', color: '#6366f1', background: '#eef2ff', borderRadius: '4px', padding: '1px 6px', display: 'inline-block', marginTop: '2px' }}>
-                          #{order.userNumericId || "—"}
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 6px', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          {order.items?.map((item, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <div className="bg-indigo-50 rounded" style={{ padding: '3px' }}>
-                                <svg style={{ width: '12px', height: '12px' }} className="text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z"></path>
-                                </svg>
-                              </div>
-                              <p className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{item.quantity}x {item.name}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 6px', verticalAlign: 'middle', minWidth: '70px' }}>
-                        <div className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{formatOrderTime(order.createdAt)}</div>
-                        <div className="text-slate-400 font-medium" style={{ fontSize: '11px' }}>{formatOrderDate(order.createdAt)}</div>
-                      </td>
-                      <td style={{ padding: '12px 0 12px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-end' }}>
-                          <button
-                            onClick={() => handleMarkDelivered(order.id)}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
-                            style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                          >
-                            <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                            Delivered
-                          </button>
-                          <button
-                            onClick={() => handleCancel(order.id)}
-                            disabled={cancellingId === order.id}
-                            className="bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-all flex items-center gap-1.5 active:scale-95"
-                            style={{ padding: '5px 10px', fontSize: '11px', border: '1px solid #fecaca', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                          >
-                            <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            {cancellingId === order.id ? '...' : 'Cancel'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* Header Info — always shown, regardless of whether there are pending orders */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" style={{ padding: '8px 16px 16px 16px' }}>
+            <div>
+              <h1 className="font-bold tracking-tight" style={{ color: '#0f172a', fontSize: '20px' }}>To Deliver</h1>
+              <p className="font-medium" style={{ color: '#475569', fontSize: '13px', marginTop: '2px' }}>Today's non-delivered orders grouped by room.</p>
             </div>
           </div>
-        ))}
-      </div>
-            </>
+
+          {orders.length === 0 ? (
+            /* Empty state — same card style as a room card, just no orders, with Add New still available */
+            <div style={{ padding: '0 12px 12px 12px' }}>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-slate-50 border-b border-gray-200 flex items-center justify-between" style={{ padding: '10px 16px' }}>
+                  <h2 className="font-bold text-slate-800 flex items-center gap-2" style={{ fontSize: '16px' }}>
+                    <svg style={{ width: '16px', height: '16px' }} className="text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    No pending orders
+                  </h2>
+                  <button
+                    onClick={() => openGuestModal('')}
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center gap-1"
+                    style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add New
+                  </button>
+                </div>
+                <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <p className="text-slate-500 font-medium" style={{ fontSize: '13px' }}>All orders have been delivered for today.</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Orders Grouped by Room */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '0 12px 12px 12px' }}>
+              {Object.entries(ordersByRoom).map(([room, roomOrders]) => (
+                <div key={room} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+
+                  {/* Room Header */}
+                  <div className="bg-slate-50 border-b border-gray-200 flex items-center justify-between" style={{ padding: '10px 16px' }}>
+                    <h2 className="font-bold text-slate-800 flex items-center gap-2" style={{ fontSize: '16px' }}>
+                      <svg style={{ width: '16px', height: '16px' }} className="text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                      </svg>
+                      Room {room}
+                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="font-bold text-slate-600 bg-white rounded-full border border-gray-200 shadow-sm" style={{ padding: '3px 10px', fontSize: '11px' }}>
+                        {roomOrders.length} {roomOrders.length === 1 ? 'Order' : 'Orders'}
+                      </span>
+                      <button
+                        onClick={() => openGuestModal(room)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center gap-1"
+                        style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add New
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Room Orders Table */}
+                  <div className="overflow-x-auto" style={{ padding: '0 16px 8px 16px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr className="border-b-2 border-slate-200 text-slate-400" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          <th style={{ padding: '10px 6px 8px 0' }}>User ID</th>
+                          <th style={{ padding: '10px 6px 8px 6px' }}>Order Details</th>
+                          <th style={{ padding: '10px 6px 8px 6px' }}>Order Time</th>
+                          <th style={{ padding: '10px 0 8px 6px', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {roomOrders.map((order) => (
+                          <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td style={{ padding: '12px 6px 12px 0', verticalAlign: 'middle', minWidth: '90px' }}>
+                              <div className="font-bold text-slate-800" style={{ fontSize: '13px', marginBottom: '2px' }}>
+                                {order.userName || "Unknown"}
+                                {(order as any).isGuestOrder && (
+                                  <span className="ml-1 text-orange-600 bg-orange-50 rounded" style={{ fontSize: '10px', padding: '1px 5px', fontWeight: 700 }}>Guest</span>
+                                )}
+                              </div>
+                              <div className="font-semibold" style={{ fontSize: '11px', color: '#6366f1', background: '#eef2ff', borderRadius: '4px', padding: '1px 6px', display: 'inline-block', marginTop: '2px' }}>
+                                #{order.userNumericId || "—"}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 6px', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {order.items?.map((item, idx) => (
+                                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <div className="bg-indigo-50 rounded" style={{ padding: '3px' }}>
+                                      <svg style={{ width: '12px', height: '12px' }} className="text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z"></path>
+                                      </svg>
+                                    </div>
+                                    <p className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{item.quantity}x {item.name}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 6px', verticalAlign: 'middle', minWidth: '70px' }}>
+                              <div className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{formatOrderTime(order.createdAt)}</div>
+                              <div className="text-slate-400 font-medium" style={{ fontSize: '11px' }}>{formatOrderDate(order.createdAt)}</div>
+                            </td>
+                            <td style={{ padding: '12px 0 12px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-end' }}>
+                                <button
+                                  onClick={() => handleMarkDelivered(order.id)}
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
+                                  style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                >
+                                  <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                  Delivered
+                                </button>
+                                <button
+                                  onClick={() => handleCancel(order.id)}
+                                  disabled={cancellingId === order.id}
+                                  className="bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-all flex items-center gap-1.5 active:scale-95"
+                                  style={{ padding: '5px 10px', fontSize: '11px', border: '1px solid #fecaca', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                >
+                                  <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                  {cancellingId === order.id ? '...' : 'Cancel'}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </>
       )}
@@ -451,19 +470,31 @@ export default function RiderDeliveryScreen() {
       {/* Quick Order Modal */}
       {guestModal.isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
           onClick={() => setGuestModal({ room: '', isOpen: false })}
         >
           <div
-            className="bg-white w-full sm:rounded-2xl shadow-2xl animate-fade-in"
-            style={{ maxWidth: '420px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '20px 20px 0 0', padding: '20px 20px 28px 20px' }}
+            className="bg-white animate-fade-in"
+            style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 'calc(100% - 32px)',
+              maxWidth: '420px',
+              maxHeight: 'calc(100vh - 40px)',
+              overflowY: 'auto',
+              borderRadius: '20px',
+              padding: '20px 20px 28px 20px',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div style={{ marginBottom: '16px' }}>
               <h3 className="font-bold text-slate-800" style={{ fontSize: '17px' }}>➕ Quick Order</h3>
               <p className="text-slate-500" style={{ fontSize: '12px', marginTop: '2px' }}>
-                Room {guestModal.room} · Select user and meal below
+                {guestModal.room ? `Room ${guestModal.room} · ` : ''}Select user and meal below
               </p>
             </div>
 
