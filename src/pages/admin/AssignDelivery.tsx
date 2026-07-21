@@ -296,8 +296,18 @@ export default function AssignDelivery() {
 
             {/* Assignment Date Modal */}
             {assignModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-up">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div
+                        className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-scale-up"
+                        style={{
+                            position: 'fixed',
+                            top: '24px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            maxHeight: 'calc(100vh - 48px)',
+                            overflowY: 'auto',
+                        }}
+                    >
                         <div style={{ padding: "32px 30px" }}>
                             <h3 style={{ fontSize: "24px", fontWeight: "900", marginBottom: "8px", color: "#0f172a" }}>Select Date</h3>
                             <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "28px" }}>Choose the date for this assignment.</p>
