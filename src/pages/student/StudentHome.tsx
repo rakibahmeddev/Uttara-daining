@@ -86,10 +86,20 @@ export default function StudentHome() {
   };
 
   const updateQuantity = (mealId, change) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [mealId]: Math.max(1, (prev[mealId] || 1) + change),
-    }));
+    setQuantities((prev) => {
+      const current = prev[mealId] || 1;
+      const next = current + change;
+      
+      if (next > 3) {
+        alert('⚠️ You cannot order more than 3 meals at a time.');
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        [mealId]: Math.max(1, next),
+      };
+    });
   };
 
   const handleOrder = (meal) => {

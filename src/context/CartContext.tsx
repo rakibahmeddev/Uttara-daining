@@ -50,11 +50,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const addToCart = (meal: CartItem) => {
         setCart((prev) => {
+            const currentTotal = prev.reduce((sum, item) => sum + item.quantity, 0);
+            
             const existing = prev.find((item) => item.id === meal.id);
             if (existing) {
+                if (currentTotal >= 3) {
+                    alert("⚠️ You can only order a maximum of 3 meals at a time.");
+                    return prev;
+                }
                 return prev.map((item) =>
                     item.id === meal.id ? { ...item, quantity: item.quantity + 1 } : item
                 );
+            }
+            
+            if (currentTotal >= 3) {
+                alert("⚠️ You can only order a maximum of 3 meals at a time.");
+                return prev;
             }
             return [...prev, { ...meal, quantity: 1 }];
         });
@@ -69,9 +80,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
             removeFromCart(mealId);
             return;
         }
-        setCart((prev) =>
-            prev.map((item) => (item.id === mealId ? { ...item, quantity } : item))
-        );
+        
+        setCart((prev) => {
+            const otherItemsTotal = prev.filter(item => item.id !== mealId).reduce((sum, item) => sum + item.quantity, 0);
+            if (otherItemsTotal + quantity > 3) {
+                alert("⚠️ You can only order a maximum of 3 meals at a time.");
+                return prev;
+            }
+            
+            return prev.map((item) => (item.id === mealId ? { ...item, quantity } : item));
+        });
     };
 
     const clearCart = () => {
