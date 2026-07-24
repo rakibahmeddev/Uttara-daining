@@ -10,12 +10,14 @@ import {
     User,
     LogOut,
     LogIn,
+    Truck,
 } from "lucide-react";
 
 // ── Role-based nav items ──────────────────────────────────────
 const STUDENT_NAV = [
-    { to: "/student",            label: "Meals"    },
+    { to: "/student",            label: "Home"    },
     { to: "/student/history",    label: "Orders"  },
+    { to: "/student/rider-delivery", label: "My Delivery" },
     { to: "/student/withdrawal", label: "Wallet"  },
     { to: "/student/profile",    label: "Profile" },
 ];
@@ -38,7 +40,7 @@ const MANAGER_NAV = [
     { to: "/manager/balance-requests", label: "Balance" },
 ];
 
-const STUDENT_NAV_ICONS = [Home, Clock, Wallet, User];
+const STUDENT_NAV_ICONS = [Home, Clock, Truck, Wallet, User];
 
 // ──────────────────────────────────────────────────────────────
 // Props

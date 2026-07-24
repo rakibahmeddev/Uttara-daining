@@ -16,8 +16,12 @@ export default function WithdrawalRequest() {
     const [reason, setReason] = useState("");
     const [loading, setLoading] = useState(false);
     const [requests, setRequests] = useState<BalanceRequest[]>([]);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [filter, setFilter] = useState<"all" | "topup" | "withdraw" | "spent">("all");
     const [pendingWithdrawals, setPendingWithdrawals] = useState<BalanceRequest[]>([]);
     const [fetchingRequests, setFetchingRequests] = useState(true);
+    const [totalSpent, setTotalSpent] = useState<number>(0);
     const [error, setError] = useState<string | null>(null);
 
     const availableBalance = useMemo(
@@ -52,9 +56,7 @@ export default function WithdrawalRequest() {
 
         const historyQ = query(
             collection(db, "balanceRequests"),
-            where("userId", "==", currentUser.uid),
-            where("type", "==", "withdraw"),
-            orderBy("createdAt", "desc")
+            where("userId", "==", currentUser.uid)
         );
         const unsubHistory = onSnapshot(
             historyQ,
@@ -68,9 +70,35 @@ export default function WithdrawalRequest() {
             }
         );
 
+        const ordersQ = query(
+            collection(db, "orders"),
+            where("userId", "==", currentUser.uid)
+        );
+        const unsubOrders = onSnapshot(ordersQ, (snap) => {
+            const ordersList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setOrders(ordersList);
+            const spent = ordersList.reduce((acc, data) => {
+                if (data.status !== 'cancelled') {
+                    return acc + (data.totalAmount || 0);
+                }
+                return acc;
+            }, 0);
+            setTotalSpent(spent);
+        });
+
+        const txQ = query(
+            collection(db, "transactions"),
+            where("userId", "==", currentUser.uid)
+        );
+        const unsubTx = onSnapshot(txQ, (snap) => {
+            setTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+
         return () => {
             unsubPending();
             unsubHistory();
+            unsubOrders();
+            unsubTx();
         };
     }, [currentUser?.uid]);
 
@@ -113,6 +141,36 @@ export default function WithdrawalRequest() {
             setLoading(false);
         }
     };
+
+    const combinedHistory = useMemo(() => {
+        let items: any[] = [];
+        requests.forEach(req => items.push({ ...req, historyType: req.type }));
+        orders.forEach(order => {
+            if (order.status !== 'cancelled') {
+                items.push({ ...order, historyType: 'spent' });
+            }
+        });
+        transactions.forEach(tx => {
+            if (!tx.balanceRequestId && tx.description !== 'Order Payment') {
+                if (tx.type === 'credit') {
+                    items.push({ ...tx, historyType: 'topup', status: 'approved', requestNumber: 'Manual', txnId: tx.description || 'N/A' });
+                } else if (tx.type === 'withdraw' || tx.type === 'debit') {
+                    items.push({ ...tx, historyType: 'withdraw', status: 'approved', requestNumber: 'Manual', bkashNumber: 'N/A' });
+                }
+            }
+        });
+        
+        items.sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA;
+        });
+
+        if (filter !== "all") {
+            items = items.filter(item => item.historyType === filter);
+        }
+        return items;
+    }, [requests, orders, filter]);
 
     return (
         <div className="animate-fade-in-up w-full pb-24 md:pb-8">
@@ -158,7 +216,7 @@ export default function WithdrawalRequest() {
                         <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Spent</span>
                     </div>
                     <p style={{ fontSize: '32px', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.1 }}>
-                        ৳{Math.max(0, (currentUser?.totalDeposited || 0) - (currentUser?.balance || 0)).toLocaleString()}
+                        ৳{totalSpent.toLocaleString()}
                     </p>
                     <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', margin: 0 }}>Total expense balance</p>
                 </div>
@@ -257,41 +315,57 @@ export default function WithdrawalRequest() {
                 </div>
 
                 <div className="flex h-full max-h-[850px] flex-col rounded-xl border border-slate-200 bg-white shadow-sm" style={{ padding: '28px 24px' }}>
-                    <div className="flex items-center gap-3" style={{ marginBottom: '20px' }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: '20px' }}>
                         <h3 className="text-xl font-bold text-slate-800">History</h3>
+                        <select
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value as any)}
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                        >
+                            <option value="all">All Transactions</option>
+                            <option value="topup">Topups</option>
+                            <option value="withdraw">Withdrawals</option>
+                            <option value="spent">Spent (Orders)</option>
+                        </select>
                     </div>
 
                     {fetchingRequests ? (
                         <div className="flex flex-1 flex-col items-center justify-center py-12">
                             <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-b-2 border-orange-500" />
-                            <p className="font-medium text-slate-400">Loading requests...</p>
+                            <p className="font-medium text-slate-400">Loading history...</p>
                         </div>
-                    ) : requests.length === 0 ? (
+                    ) : combinedHistory.length === 0 ? (
                         <div className="flex flex-1 flex-col items-center justify-center py-12">
                             <Clock size={36} className="text-slate-400" />
-                            <p className="mt-4 font-medium text-slate-400">No withdrawal requests yet</p>
+                            <p className="mt-4 font-medium text-slate-400">No history found</p>
                         </div>
                     ) : (
-                        <div className="custom-scrollbar flex-1 space-y-4 overflow-y-auto pr-2">
-                            {requests.map((request) => (
+                        <div className="custom-scrollbar flex-1 overflow-y-auto pr-2">
+                            {combinedHistory.map((item, idx) => (
                                 <div
-                                    key={request.id}
-                                    className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition-all hover:border-orange-500/30"
+                                    key={item.id || idx}
+                                    className="rounded-2xl border border-slate-200 bg-slate-50 transition-all hover:border-orange-500/30"
+                                    style={{ padding: '16px 20px', marginBottom: '16px' }}
                                 >
                                     <div className="mb-3 flex items-start justify-between">
                                         <div>
-                                            <p className="text-2xl font-black text-slate-800">৳{Math.abs(request.amount)}</p>
-                                            <p className="text-xs text-slate-500">
-                                                #{request.requestNumber} · {request.createdAt ? formatDateBD(request.createdAt) : "Pending"}
+                                            <p className="text-2xl font-black text-slate-800">
+                                                ৳{Math.abs(item.historyType === 'spent' ? item.totalAmount : item.amount)}
+                                            </p>
+                                            <p className="text-xs text-slate-500 capitalize">
+                                                {item.historyType} · {item.historyType !== 'spent' ? `#${item.requestNumber} · ` : ''} 
+                                                {item.createdAt ? formatDateBD(item.createdAt) : "Pending"}
                                             </p>
                                         </div>
-                                        <StatusBadge status={request.status} />
+                                        <StatusBadge status={item.status} />
                                     </div>
                                     <p className="text-xs text-slate-600">
-                                        <span className="font-medium">bKash:</span> {request.bkashNumber}
+                                        {item.historyType === 'withdraw' && <><span className="font-medium">bKash:</span> {item.bkashNumber}</>}
+                                        {item.historyType === 'topup' && <><span className="font-medium">TxnID:</span> {item.txnId}</>}
+                                        {item.historyType === 'spent' && <span className="font-medium">Order Payment</span>}
                                     </p>
-                                    {request.rejectionReason && (
-                                        <p className="mt-2 text-xs text-red-500">{request.rejectionReason}</p>
+                                    {item.rejectionReason && (
+                                        <p className="mt-2 text-xs text-red-500">{item.rejectionReason}</p>
                                     )}
                                 </div>
                             ))}
@@ -307,6 +381,7 @@ function StatusBadge({ status }: { status: string }) {
     const config: Record<string, { icon: typeof Clock; classes: string; label: string }> = {
         pending: { icon: Clock, classes: "bg-amber-50 border-amber-200 text-amber-600", label: "Pending" },
         approved: { icon: CheckCircle, classes: "bg-emerald-50 border-emerald-200 text-emerald-600", label: "Approved" },
+        delivered: { icon: CheckCircle, classes: "bg-emerald-50 border-emerald-200 text-emerald-600", label: "Delivered" },
         rejected: { icon: XCircle, classes: "bg-red-50 border-red-200 text-red-600", label: "Rejected" },
     };
     const { icon: Icon, classes, label } = config[status] || config.pending;

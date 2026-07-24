@@ -57,12 +57,22 @@ import Profile from "./pages/student/Profile";
 import WithdrawalRequest from "./pages/student/WithdrawalRequest";
 import RiderDeliveryScreen from "./pages/student/RiderDeliveryScreen";
 
-function HomeRedirect() {
-  const { userRole } = useAuth();
-  if (userRole === 'admin') return <Navigate to="/admin" />;
-  if (userRole === 'manager') return <Navigate to="/manager" />;
-  if (userRole === 'student') return <Navigate to="/student" />;
-  return <Navigate to="/login" />;
+function RootRouteHandler() {
+  const { currentUser, userRole, loading } = useAuth();
+  
+  if (loading) return null;
+
+  if (currentUser && userRole) {
+    if (userRole === 'admin') return <Navigate to="/admin" replace />;
+    if (userRole === 'manager') return <Navigate to="/manager" replace />;
+    if (userRole === 'student') return <Navigate to="/student" replace />;
+  }
+
+  return (
+    <PublicLayout>
+      <StudentHome />
+    </PublicLayout>
+  );
 }
 
 function App() {
@@ -133,7 +143,12 @@ function App() {
               <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
             </Route>
 
-            <Route path="/" element={<PublicLayout><StudentHome /></PublicLayout>} />
+            <Route 
+              path="/" 
+              element={
+                <RootRouteHandler />
+              } 
+            />
           </Routes>
         </Router>
       </CartProvider>

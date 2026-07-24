@@ -145,7 +145,7 @@ export default function StudentHome() {
   }
 
   return (
-    <div className="w-full" style={{ width: '100%', margin: '0 auto', padding: '0 20px' }}>
+    <div className="w-full" style={{ width: '100%', margin: '0 auto', padding: '0 20px', paddingBottom: '60px' }}>
       {/* ── Delivery Duty Banner ── */}
       {currentUser?.assignedDeliveryDate === (() => {
           const now = new Date();
@@ -181,13 +181,12 @@ export default function StudentHome() {
       )}
 
       {/* ── Section Header ── */}
-      <div className="flex flex-col items-center justify-center text-center w-full py-12 md:py-16" style={{marginBottom: '50px', marginTop:'50px'}}>
+      <div className="flex flex-col items-center justify-center text-center w-full py-6 md:py-8" style={{marginBottom: '20px', marginTop:'30px'}}>
         <h2
-          className="text-4xl font-bold mb-1 text-slate-800"
+          className="text-3xl md:text-4xl font-bold mb-1 text-slate-800"
         >
           Today's Menu
         </h2>
-        
       </div>
 
       {/* ── Meals Grid ── */}

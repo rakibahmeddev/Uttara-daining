@@ -35,6 +35,12 @@ export default function RiderDeliveryScreen() {
     return (new Date(now.getTime() - offset)).toISOString().slice(0, 10);
   };
 
+  const isAuthorizedRider = useMemo(() => {
+    if (currentUser?.role === 'admin' || currentUser?.role === 'manager') return true;
+    if (currentUser?.assignedDeliveryDate === getLocalTodayString()) return true;
+    return false;
+  }, [currentUser]);
+
   const formatOrderTime = (createdAt: any): string => {
     if (!createdAt) return '—';
     try {
@@ -128,6 +134,10 @@ export default function RiderDeliveryScreen() {
   };
 
   const handleMarkDelivered = async (orderId: string) => {
+    if (!isAuthorizedRider) {
+      alert("You are not authorized to deliver meals. Only the assigned rider, admin, or manager can do this.");
+      return;
+    }
     try {
       await updateDoc(doc(db, 'orders', orderId), { 
         status: 'delivered', 
@@ -140,6 +150,10 @@ export default function RiderDeliveryScreen() {
   };
 
   const handleCancel = async (orderId: string) => {
+    if (!isAuthorizedRider) {
+      alert("You are not authorized to cancel orders. Only the assigned rider, admin, or manager can do this.");
+      return;
+    }
     if (!confirm("Are you sure you want to cancel this order?")) return;
     setCancellingId(orderId);
     try {
@@ -366,26 +380,28 @@ export default function RiderDeliveryScreen() {
                               <div className="text-slate-400 font-medium" style={{ fontSize: '11px' }}>{formatOrderDate(order.createdAt)}</div>
                             </td>
                             <td style={{ padding: '12px 0 12px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-end' }}>
-                                <button
-                                  onClick={() => handleMarkDelivered(order.id)}
-                                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
-                                  style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                >
-                                  <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                                  Delivered
-                                </button>
-                                <button
-                                  onClick={() => handleCancel(order.id)}
-                                  disabled={cancellingId === order.id}
-                                  className="bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-all flex items-center gap-1.5 active:scale-95"
-                                  style={{ padding: '5px 10px', fontSize: '11px', border: '1px solid #fecaca', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                >
-                                  <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                  {cancellingId === order.id ? '...' : 'Cancel'}
-                                </button>
-                              </div>
-                            </td>
+                                {isAuthorizedRider && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-end' }}>
+                                    <button
+                                      onClick={() => handleMarkDelivered(order.id)}
+                                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
+                                      style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    >
+                                      <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                      Delivered
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancel(order.id)}
+                                      disabled={cancellingId === order.id}
+                                      className="bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-all flex items-center gap-1.5 active:scale-95"
+                                      style={{ padding: '5px 10px', fontSize: '11px', border: '1px solid #fecaca', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    >
+                                      <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                      {cancellingId === order.id ? '...' : 'Cancel'}
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
                           </tr>
                         ))}
                       </tbody>
