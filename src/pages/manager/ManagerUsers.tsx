@@ -156,7 +156,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
     const [balance, setBalance] = useState(user.balance || 0);
     const [saving, setSaving] = useState(false);
 
-    const roles = ["student", "manager", "admin"];
+    const roles = user.role === 'admin' ? ["student", "manager", "admin"] : ["student", "manager"];
 
     const handleSave = async () => {
         setSaving(true);
@@ -173,7 +173,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
     };
 
     return (
-        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh", paddingLeft: "16px", paddingRight: "16px", backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "5vh", paddingLeft: "16px", paddingRight: "16px", backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
             <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", width: "100%", maxWidth: "440px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
                 {/* Header */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
@@ -182,8 +182,8 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
                 </div>
 
                 {/* User info */}
-                <div style={{ padding: "20px 24px 0", maxHeight: "65vh", overflowY: "auto" }}>
-                    <div style={{ display: "flex", alignItems: "center", padding: "16px", backgroundColor: "#fff7ed", borderRadius: "12px", border: "1px solid #ffedd5", marginBottom: "20px" }}>
+                <div style={{ padding: "16px 20px 0", maxHeight: "75vh", overflowY: "auto" }}>
+                    <div style={{ display: "flex", alignItems: "center", padding: "12px", backgroundColor: "#fff7ed", borderRadius: "12px", border: "1px solid #ffedd5", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1 }}>
                             <div style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: "18px", flexShrink: 0 }}>
                                 {(user.name || user.email || "?")[0].toUpperCase()}
@@ -200,7 +200,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
                     </div>
 
                     {/* Name & Email */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                         <div>
                             <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Name</label>
                             <input
@@ -219,7 +219,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                         <div>
                             <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Phone</label>
                             <input
@@ -238,7 +238,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                         <div>
                             <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Reg. Number</label>
                             <input
@@ -257,7 +257,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                         <div>
                             <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Hall Name</label>
                             <input
@@ -277,11 +277,13 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
                                 <button
                                     key={r}
                                     onClick={() => setRole(r)}
+                                    disabled={user.role === 'admin'}
                                     style={{
-                                        flex: 1, padding: "10px 8px", borderRadius: "10px", border: `2px solid ${role === r ? (r === 'admin' ? '#9333ea' : r === 'manager' ? '#3b82f6' : '#10b981') : '#e2e8f0'}`,
+                                        flex: 1, padding: "8px 8px", borderRadius: "10px", border: `2px solid ${role === r ? (r === 'admin' ? '#9333ea' : r === 'manager' ? '#3b82f6' : '#10b981') : '#e2e8f0'}`,
                                         backgroundColor: role === r ? (r === 'admin' ? '#faf5ff' : r === 'manager' ? '#eff6ff' : '#f0fdf4') : '#fff',
                                         color: role === r ? (r === 'admin' ? '#9333ea' : r === 'manager' ? '#3b82f6' : '#10b981') : '#64748b',
-                                        fontWeight: 700, fontSize: "13px", cursor: "pointer", textTransform: "capitalize", transition: "all 0.15s"
+                                        fontWeight: 700, fontSize: "13px", cursor: user.role === 'admin' ? "not-allowed" : "pointer", textTransform: "capitalize", transition: "all 0.15s",
+                                        opacity: user.role === 'admin' ? 0.7 : 1
                                     }}
                                 >
                                     {r.charAt(0).toUpperCase() + r.slice(1)}
