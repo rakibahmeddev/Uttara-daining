@@ -94,6 +94,7 @@ function App() {
               }
             >
               <Route index element={<AdminDashboard />} />
+              <Route path="order" element={<StudentHome />} />
               <Route path="meals" element={<Meals />} />
               <Route path="users" element={<Users />} />
               <Route path="assign-delivery" element={<AssignDelivery />} />

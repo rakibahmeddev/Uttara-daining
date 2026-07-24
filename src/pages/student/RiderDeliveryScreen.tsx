@@ -413,15 +413,7 @@ export default function RiderDeliveryScreen() {
                                       <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                       Delivered
                                     </button>
-                                    <button
-                                      onClick={() => handleCancel(order.id)}
-                                      disabled={cancellingId === order.id}
-                                      className="bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-lg transition-all flex items-center gap-1.5 active:scale-95"
-                                      style={{ padding: '5px 10px', fontSize: '11px', border: '1px solid #fecaca', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                    >
-                                      <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                      {cancellingId === order.id ? '...' : 'Cancel'}
-                                    </button>
+
                                   </div>
                                 )}
                               </td>

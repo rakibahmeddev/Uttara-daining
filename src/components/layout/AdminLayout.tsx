@@ -13,6 +13,7 @@ import {
 
 const navItems: NavItem[] = [
     { path: "/admin", label: "Dashboard", icon: LayoutDashboard, color: "#8b5cf6" },
+    { path: "/admin/order", label: <span style={{ display: 'flex', flexDirection: 'column' }}><span>Order Meal</span><span className="text-[10px] opacity-75 leading-none mt-0.5">(only for myself)</span></span>, icon: Utensils, color: "#a855f7" },
     { path: "/admin/meals", label: "Meals", icon: Utensils, color: "#f97316" },
     { path: "/admin/orders", label: "Orders", icon: ShoppingBag, color: "#0ea5e9" },
     { path: "/admin/assign-delivery", label: "Assign Delivery", icon: Truck, color: "#22c55e" },

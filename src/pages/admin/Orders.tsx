@@ -84,7 +84,6 @@ export default function Orders() {
     const tabs = [
         { id: "pending", label: "Pending" },
         { id: "delivered", label: "Delivered" },
-        { id: "rejected", label: "Rejected" },
         { id: "all", label: "All Orders" },
     ];
 
@@ -261,9 +260,6 @@ export default function Orders() {
                                                 <>
                                                     <Button size="sm" onClick={() => handleStatusUpdate(order.id, 'delivered')} className="bg-green-600 hover:bg-green-700" style={{ padding: "2px 5px", fontSize: "11px", margin: "2px" }}>
                                                         Deliver
-                                                    </Button>
-                                                    <Button size="sm" variant="danger" onClick={() => handleStatusUpdate(order.id, 'rejected')} style={{ padding: "2px 5px", fontSize: "11px", margin: "2px" }}>
-                                                        Reject
                                                     </Button>
                                                 </>
                                             )}
