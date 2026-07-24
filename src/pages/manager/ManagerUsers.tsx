@@ -24,12 +24,30 @@ export default function ManagerUsers() {
         return () => unsubscribe();
     }, []);
 
+    const filteredUsers = users.filter(user => {
+        if (!searchQuery.trim()) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            user.name?.toLowerCase().includes(query) ||
+            user.email?.toLowerCase().includes(query) ||
+            String(user.userId || '').includes(query)
+        );
+    });
+
 
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="flex flex-col gap-4">
                 <div>
-                    <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#ffffff" }}>Manage Users</h2>
+                    <div className="flex items-center gap-3">
+                        <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#ffffff" }}>Manage Users</h2>
+                        <span 
+                            className="bg-orange-500/20 text-orange-400 rounded-full text-[11px] font-bold border border-orange-500/30"
+                            style={{ padding: "4px 12px", letterSpacing: "0.5px", marginTop: "2px" }}
+                        >
+                            {filteredUsers.length} {filteredUsers.length === 1 ? 'User' : 'Users'}
+                        </span>
+                    </div>
                     <p className="text-xs text-slate-500 mt-1">View, edit, search, and manage funds for Uttara Dining users</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -61,30 +79,14 @@ export default function ManagerUsers() {
                             </tr>
                         </thead>
                         <tbody>
-                            {users.filter(user => {
-                                if (!searchQuery) return true;
-                                const query = searchQuery.toLowerCase();
-                                return (
-                                    user.name?.toLowerCase().includes(query) ||
-                                    user.email?.toLowerCase().includes(query) ||
-                                    String(user.userId || '').includes(query)
-                                );
-                            }).length === 0 ? (
+                            {filteredUsers.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="text-center text-slate-400 text-sm py-8">
                                         {searchQuery ? 'No users found matching your search.' : 'No users found.'}
                                     </td>
                                 </tr>
                             ) : (
-                                users.filter(user => {
-                                    if (!searchQuery) return true;
-                                    const query = searchQuery.toLowerCase();
-                                    return (
-                                        user.name?.toLowerCase().includes(query) ||
-                                        user.email?.toLowerCase().includes(query) ||
-                                        String(user.userId || '').includes(query)
-                                    );
-                                }).map((user) => (
+                                filteredUsers.map((user) => (
                                     <tr key={user.id} onClick={() => setEditUser(user)} style={{ cursor: "pointer" }} className="hover:bg-orange-50 transition-colors">
                                         <td className="whitespace-nowrap">
                                             <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full text-slate-700">

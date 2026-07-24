@@ -20,7 +20,9 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "allowJs": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    /* Vitest global types — describe, it, expect কোনো import ছাড়াই পাবে */
+    "types": ["vitest/globals"]
   },
   "include": ["src"]
 }

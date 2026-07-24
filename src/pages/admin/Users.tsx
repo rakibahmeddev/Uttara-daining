@@ -6,21 +6,21 @@ import { Input } from "../../components/ui/Input";
 import Modal from "../../components/ui/Modal";
 import { Avatar } from "../../components/admin/UserDisplay";
 import { sortUsersByNumericId } from "../../utils/userMapping";
-import { DollarSign, Edit, Search, Database } from "lucide-react";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { DollarSign, Edit, Search, Database, Trash2 } from "lucide-react";
+import { collection, onSnapshot, query, doc, deleteDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import type { UserDoc } from "../../types";
 
 export default function Users() {
-    const [users, setUsers] = useState([]);
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [editingUser, setEditingUser] = useState(null);
+    const [users, setUsers] = useState<UserDoc[]>([]);
+    const [selectedUser, setSelectedUser] = useState<UserDoc | null>(null);
+    const [editUser, setEditUser] = useState<UserDoc | null>(null);
     const [amount, setAmount] = useState("");
     const [transactionType, setTransactionType] = useState("add");
-    const [profileData, setProfileData] = useState<Partial<UserDoc>>({});
     const [loading, setLoading] = useState(false);
     const [migrating, setMigrating] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     useEffect(() => {
         // Real-time listener for users
@@ -95,69 +95,7 @@ export default function Users() {
         }
     };
 
-    const handleEditProfile = (user) => {
-        setEditingUser(user);
-        setProfileData({
-            name: user.name || '',
-            email: user.email || '',
-            phone: user.phone || '',
-            password: user.password || '',
-            roomNumber: user.roomNumber || '',
-            registrationNumber: user.registrationNumber || '',
-            departmentName: user.departmentName || '',
-            hallName: user.hallName || ''
-        });
-    };
-
-    const handleSaveProfile = async (e) => {
-        e.preventDefault();
-        if (!editingUser) return;
-
-        setLoading(true);
-        try {
-            const { doc, updateDoc, collection, getDocs, query, where } = await import('firebase/firestore');
-            const usersRef = collection(db, 'users');
-
-            // 1. Check Phone Uniqueness
-            if (profileData.phone) {
-                const phoneQuery = query(usersRef, where("phone", "==", profileData.phone));
-                const phoneSnapshot = await getDocs(phoneQuery);
-                const isDuplicatePhone = phoneSnapshot.docs.some(d => d.id !== editingUser.id);
-                if (isDuplicatePhone) {
-                    alert("Error: This Mobile Number is already used by another person!");
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            // 2. Check Email Uniqueness
-            if (profileData.email) {
-                const emailQuery = query(usersRef, where("email", "==", profileData.email.toLowerCase()));
-                const emailSnapshot = await getDocs(emailQuery);
-                const isDuplicateEmail = emailSnapshot.docs.some(d => d.id !== editingUser.id);
-                if (isDuplicateEmail) {
-                    alert("Error: This Email is already used by another person!");
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            // Make sure email is saved in lowercase if edited
-            const dataToSave = { ...profileData };
-            if (dataToSave.email) {
-                dataToSave.email = dataToSave.email.toLowerCase();
-            }
-
-            await updateDoc(doc(db, 'users', editingUser.id), dataToSave);
-            alert("Profile updated successfully!");
-            setEditingUser(null);
-        } catch (error) {
-            console.error("Error updating profile:", error);
-            alert("Failed to update profile");
-        } finally {
-            setLoading(false);
-        }
-    };
+    // The Edit Profile validation and saving logic is now handled inside the EditUserModal component.
 
     // Filter users based on search query
     const filteredUsers = users.filter(user => {
@@ -177,12 +115,100 @@ export default function Users() {
         );
     });
 
+    // Handle Bulk Deletion
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        
+        const isConfirmed = window.confirm(
+            `⚠️ Are you sure you want to delete ${selectedIds.length} user(s)?\n\nThis will permanently remove their records from the database.`
+        );
+        
+        if (!isConfirmed) return;
+        
+        setLoading(true);
+        try {
+            const deletePromises = selectedIds.map(id => deleteDoc(doc(db, "users", id)));
+            await Promise.all(deletePromises);
+            alert(`✅ Successfully deleted ${selectedIds.length} user(s).`);
+            setSelectedIds([]); // Clear selection after successful deletion
+        } catch (error: any) {
+            console.error("Bulk delete error:", error);
+            alert("❌ Failed to delete users: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle Single Deletion
+    const handleSingleDelete = async (user: UserDoc) => {
+        const isConfirmed = window.confirm(
+            `⚠️ Are you sure you want to delete ${user.name || user.email || 'this user'}?\n\nThis action cannot be undone.`
+        );
+        
+        if (!isConfirmed) return;
+        
+        setLoading(true);
+        try {
+            await deleteDoc(doc(db, "users", user.id));
+            // alert(`✅ Successfully deleted user.`);
+        } catch (error: any) {
+            console.error("Delete error:", error);
+            alert("❌ Failed to delete user: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Toggle Checkbox Selection
+    const toggleSelection = (userId: string) => {
+        setSelectedIds(prev => 
+            prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+        );
+    };
+
+    const toggleAllSelection = () => {
+        if (selectedIds.length === filteredUsers.length && filteredUsers.length > 0) {
+            setSelectedIds([]); // Deselect all
+        } else {
+            setSelectedIds(filteredUsers.map(u => u.id)); // Select all filtered
+        }
+    };
+
     return (
         <div className="space-y-6 animate-fade-in-up">
             <div className="flex flex-col gap-4">
-                <div>
-                    <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#ffffff" }}>Manage Users</h2>
-                    <p className="text-xs text-slate-500 mt-1">View, edit, search, and manage funds for Uttara Dining users</p>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#ffffff" }}>Manage Users</h2>
+                            <span 
+                                className="bg-orange-500/20 text-orange-400 rounded-full text-[11px] font-bold border border-orange-500/30"
+                                style={{ padding: "4px 12px", letterSpacing: "0.5px", marginTop: "2px" }}
+                            >
+                                {filteredUsers.length} {filteredUsers.length === 1 ? 'User' : 'Users'}
+                            </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">View, edit, search, and manage funds for Uttara Dining users</p>
+                    </div>
+                    
+                    {/* Delete Action Button */}
+                    {selectedIds.length > 0 && (
+                        <div className="animate-fade-in-up">
+                            <Button 
+                                onClick={handleBulkDelete}
+                                disabled={loading}
+                                className="bg-red-500 hover:bg-red-600 text-white border-0 shadow-lg"
+                                size="sm"
+                            >
+                                {loading ? "Deleting..." : (
+                                    <>
+                                        <Trash2 size={16} className="mr-2 inline" />
+                                        Delete {selectedIds.length} Selected
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    )}
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
                     <div className="relative w-full">
@@ -203,6 +229,15 @@ export default function Users() {
                     <table className="admin-table">
                         <thead>
                             <tr>
+                                <th style={{ width: "40px", textAlign: "center" }}>
+                                    <input 
+                                        type="checkbox" 
+                                        className="rounded border-slate-300 text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                                        checked={selectedIds.length > 0 && selectedIds.length === filteredUsers.length}
+                                        onChange={toggleAllSelection}
+                                        disabled={filteredUsers.length === 0}
+                                    />
+                                </th>
                                 <th>User ID</th>
                                 <th>Name</th>
                                 <th>Email</th>
@@ -216,7 +251,7 @@ export default function Users() {
                         <tbody>
                             {filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="text-center text-slate-500 text-sm">
+                                    <td colSpan={9} className="text-center text-slate-500 text-sm">
                                         {searchQuery ? 'No users found matching your search.' : 'No users found.'}
                                     </td>
                                 </tr>
@@ -224,9 +259,17 @@ export default function Users() {
                                 filteredUsers.map((user) => (
                                     <tr
                                         key={user.id}
-                                        onClick={() => handleEditProfile(user)}
-                                        className="cursor-pointer"
+                                        onClick={() => setEditUser(user)}
+                                        className={`cursor-pointer transition-colors ${selectedIds.includes(user.id) ? 'bg-orange-50/80' : 'hover:bg-orange-50'}`}
                                     >
+                                        <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                                            <input 
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                                                checked={selectedIds.includes(user.id)}
+                                                onChange={() => toggleSelection(user.id)}
+                                            />
+                                        </td>
                                         <td className="whitespace-nowrap">
                                             <span
                                                 className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
@@ -274,26 +317,12 @@ export default function Users() {
                                             variant="outline"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleEditProfile(user);
+                                                handleSingleDelete(user);
                                             }}
-                                            className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                                            className="bg-white border border-red-200 text-red-600 hover:bg-red-50"
                                         >
-                                            <Edit size={16} className="mr-1 inline" />
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedUser(user);
-                                                setAmount("");
-                                                setTransactionType("add");
-                                            }}
-                                            className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                                        >
-                                            <DollarSign size={16} className="mr-1 inline" />
-                                            Manage Funds
+                                            <Trash2 size={16} className="mr-1 inline" />
+                                            Delete
                                         </Button>
                                     </td>
                                 </tr>
@@ -374,105 +403,233 @@ export default function Users() {
                 </form>
             </Modal>
 
-            {/* Edit Profile Modal */}
-            <Modal
-                isOpen={!!editingUser}
-                onClose={() => setEditingUser(null)}
-                title={`Edit Profile: ${editingUser?.name}`}
-            >
-                <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "14px", paddingBottom: "4px" }}>
-                    <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Full Name</label>
-                        <Input
-                            type="text"
-                            value={profileData.name || ''}
-                            onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                            required
-                        />
+            {/* Edit User Modal (Matching Manager Dashboard style) */}
+            {editUser && (
+                <EditUserModal
+                    user={editUser}
+                    onClose={() => setEditUser(null)}
+                    onManageFunds={() => {
+                        setSelectedUser(editUser);
+                    }}
+                    onSaved={() => {
+                        setEditUser(null);
+                    }}
+                />
+            )}
+        </div>
+    );
+}
+
+function EditUserModal({ user, onClose, onSaved, onManageFunds }: { user: UserDoc, onClose: () => void, onSaved: (u: Partial<UserDoc> & { id: string }) => void, onManageFunds?: () => void }) {
+    const [role, setRole] = useState(user.role || "student");
+    const [name, setName] = useState(user.name || "");
+    const [phone, setPhone] = useState(user.phone || "");
+    const [roomNumber, setRoomNumber] = useState(user.roomNumber || "");
+    const [registrationNumber, setRegistrationNumber] = useState(user.registrationNumber || "");
+    const [departmentName, setDepartmentName] = useState(user.departmentName || "");
+    const [hallName, setHallName] = useState(user.hallName || "");
+    const [password, setPassword] = useState((user as any).password || "");
+    const [email, setEmail] = useState(user.email || "");
+    const [saving, setSaving] = useState(false);
+
+    // Admin should be able to promote/demote to all roles
+    const roles = ["student", "manager", "admin"];
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const { doc, updateDoc, collection, getDocs, query, where } = await import('firebase/firestore');
+            const usersRef = collection(db, 'users');
+
+            // Unique Checks
+            if (phone) {
+                const phoneQuery = query(usersRef, where("phone", "==", phone));
+                const phoneSnapshot = await getDocs(phoneQuery);
+                const isDuplicatePhone = phoneSnapshot.docs.some(d => d.id !== user.id);
+                if (isDuplicatePhone) {
+                    alert("Error: This Mobile Number is already used by another person!");
+                    setSaving(false);
+                    return;
+                }
+            }
+
+            if (email) {
+                const emailQuery = query(usersRef, where("email", "==", email.toLowerCase()));
+                const emailSnapshot = await getDocs(emailQuery);
+                const isDuplicateEmail = emailSnapshot.docs.some(d => d.id !== user.id);
+                if (isDuplicateEmail) {
+                    alert("Error: This Email is already used by another person!");
+                    setSaving(false);
+                    return;
+                }
+            }
+
+            const updates = { 
+                role, 
+                name, 
+                phone, 
+                roomNumber, 
+                registrationNumber, 
+                departmentName, 
+                hallName, 
+                password, 
+                email: email.toLowerCase(),
+            };
+            
+            if (role === 'admin' && user.role !== 'admin') {
+                await promoteUserToAdmin(user.id); // special function to update custom claims if needed
+            } else {
+                await updateDoc(doc(db, "users", user.id), updates);
+            }
+            
+            onSaved({ id: user.id, ...updates });
+        } catch (e) {
+            console.error(e);
+            alert("Failed to save changes");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "5vh", paddingLeft: "16px", paddingRight: "16px", backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+            <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", width: "100%", maxWidth: "440px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
+                    <h3 style={{ fontWeight: 800, fontSize: "18px", color: "#0f172a", margin: 0 }}>Edit User Profile</h3>
+                    <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", padding: "6px", borderRadius: "50%", display: "flex" }}>✕</button>
+                </div>
+
+                {/* User info */}
+                <div style={{ padding: "16px 20px 0", maxHeight: "75vh", overflowY: "auto" }}>
+                    <div style={{ display: "flex", alignItems: "center", padding: "12px", backgroundColor: "#fff7ed", borderRadius: "12px", border: "1px solid #ffedd5", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1 }}>
+                            <div style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: "18px", flexShrink: 0 }}>
+                                {(user.name || user.email || "?")[0].toUpperCase()}
+                            </div>
+                            <div>
+                                <p style={{ fontWeight: 700, fontSize: "15px", color: "#0f172a", margin: 0 }}>{user.name || "—"}</p>
+                                <p style={{ fontSize: "12px", color: "#64748b", margin: "3px 0 0" }}>ID: {user.userId || "—"} | Rm: {user.roomNumber || "—"}</p>
+                                <p style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 0" }}>{user.email}</p>
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                            <div style={{ backgroundColor: "#fff", border: "1px solid #fed7aa", padding: "8px 12px", borderRadius: "8px", textAlign: "right", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                                <span style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>৳{user.balance || 0}</span>
+                            </div>
+                            {onManageFunds && (
+                                <button 
+                                    onClick={onManageFunds}
+                                    style={{ backgroundColor: "#f97316", color: "#fff", border: "none", padding: "0 12px", borderRadius: "8px", fontWeight: 700, fontSize: "12px", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+                                >
+                                    <DollarSign size={14} />
+                                    Manage
+                                </button>
+                            )}
+                        </div>
                     </div>
 
-                    <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Email Address</label>
-                        <Input
-                            type="email"
-                            value={profileData.email || ''}
-                            onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                            required
-                        />
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
+                    {/* Name & Email */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                         <div>
-                            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Mobile Number</label>
-                            <Input
-                                type="text"
-                                value={profileData.phone || ''}
-                                onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                                placeholder="017XXXXXXXX"
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Name</label>
+                            <input
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
                             />
                         </div>
                         <div>
-                            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Password / PIN</label>
-                            <Input
-                                type="text"
-                                value={profileData.password || ''}
-                                onChange={(e) => setProfileData({ ...profileData, password: e.target.value })}
-                                placeholder="••••••"
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Email</label>
+                            <input
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
                             />
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                         <div>
-                            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Room Number</label>
-                            <Input
-                                type="text"
-                                value={profileData.roomNumber || ''}
-                                onChange={(e) => setProfileData({ ...profileData, roomNumber: e.target.value })}
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Phone</label>
+                            <input
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
                             />
                         </div>
                         <div>
-                            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Registration No.</label>
-                            <Input
-                                type="text"
-                                value={profileData.registrationNumber || ''}
-                                onChange={(e) => setProfileData({ ...profileData, registrationNumber: e.target.value })}
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Password/PIN</label>
+                            <input
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
                             />
                         </div>
                     </div>
 
-                    <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Department</label>
-                        <Input
-                            type="text"
-                            value={profileData.departmentName || ''}
-                            onChange={(e) => setProfileData({ ...profileData, departmentName: e.target.value })}
-                        />
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Reg. Number</label>
+                            <input
+                                value={registrationNumber}
+                                onChange={e => setRegistrationNumber(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Department</label>
+                            <input
+                                value={departmentName}
+                                onChange={e => setDepartmentName(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
                     </div>
 
-                    <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.85)" }}>Hall Name</label>
-                        <Input
-                            type="text"
-                            value={profileData.hallName || ''}
-                            onChange={(e) => setProfileData({ ...profileData, hallName: e.target.value })}
-                        />
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Hall Name</label>
+                            <input
+                                value={hallName}
+                                onChange={e => setHallName(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div></div>
                     </div>
 
-                    <div style={{ background: "rgba(56, 189, 248, 0.1)", padding: "12px 14px", borderRadius: "10px", fontSize: "13px", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.2)", marginTop: "4px" }}>
-                        ℹ️ Student ID ({editingUser?.idNumber}) is auto-generated and cannot be modified.
+                    {/* Role */}
+                    <div style={{ marginBottom: "24px" }}>
+                        <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "10px" }}>Role</label>
+                        <div style={{ display: "flex", gap: "10px" }}>
+                            {roles.map(r => (
+                                <button
+                                    key={r}
+                                    type="button"
+                                    onClick={() => setRole(r)}
+                                    style={{
+                                        flex: 1, padding: "8px 8px", borderRadius: "10px", border: `2px solid ${role === r ? (r === 'admin' ? '#9333ea' : r === 'manager' ? '#3b82f6' : '#10b981') : '#e2e8f0'}`,
+                                        backgroundColor: role === r ? (r === 'admin' ? '#faf5ff' : r === 'manager' ? '#eff6ff' : '#f0fdf4') : '#fff',
+                                        color: role === r ? (r === 'admin' ? '#9333ea' : r === 'manager' ? '#3b82f6' : '#10b981') : '#64748b',
+                                        fontWeight: 700, fontSize: "13px", cursor: "pointer", textTransform: "capitalize", transition: "all 0.15s",
+                                    }}
+                                >
+                                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                                </button>
+                            ))}
+                        </div>
                     </div>
+                </div>
 
-                    <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={loading}
-                        style={{ padding: "12px", fontSize: "14px" }}
-                    >
-                        {loading ? "Saving..." : "Save Changes"}
-                    </Button>
-                </form>
-            </Modal>
+                {/* Footer */}
+                <div style={{ display: "flex", gap: "10px", padding: "16px 24px", borderTop: "1px solid #f1f5f9" }}>
+                    <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", backgroundColor: "#fff", color: "#64748b", fontWeight: 700, fontSize: "14px", cursor: "pointer" }}>Cancel</button>
+                    <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "none", backgroundColor: "#f97316", color: "#fff", fontWeight: 700, fontSize: "14px", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
+                        {saving ? "Saving..." : "Save Changes"}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

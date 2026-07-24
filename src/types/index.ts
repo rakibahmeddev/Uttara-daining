@@ -1,5 +1,34 @@
 import { Timestamp } from "firebase/firestore";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Auth Loading & Error State Types
+// AuthContext-এর Timeout Fallback এবং Error Handling-এর জন্য ব্যবহৃত
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Firebase বা নেটওয়ার্ক এরর থেকে তৈরি টাইপড এরর স্টেট।
+ * `catch (error: unknown)` ব্লক থেকে এই স্ট্রাকচারে রূপান্তর করা হয়।
+ */
+export interface AuthError {
+  /** এরর মেসেজ (human-readable) */
+  message: string;
+  /** Firebase ErrorCode যেমন: "auth/network-request-failed" */
+  code?: string;
+  /** এরর কখন হয়েছে সেটার timestamp */
+  timestamp: number;
+}
+
+/**
+ * Splash / Loading স্ক্রিনের সম্পূর্ণ স্টেট।
+ * AuthProvider-এ loading এবং error একসাথে ম্যানেজ করার জন্য।
+ */
+export interface SplashLoadingState {
+  /** এখনও লোড হচ্ছে কিনা */
+  loading: boolean;
+  /** Timeout বা Firebase এরর হলে সেট হবে, অন্যথায় null */
+  error: AuthError | null;
+}
+
 /** A Firestore document with a string id field merged in */
 export interface FirestoreDoc {
     id: string;

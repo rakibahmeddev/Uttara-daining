@@ -5,7 +5,9 @@ import { formatDateBD, formatDateShortBD } from "../../utils/date";
 import { cn } from "../../utils/cn";
 import { CustomerCell, RoomNoCell } from "../../components/admin/UserDisplay";
 import type { Order } from "../../types";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, Trash2, RefreshCw } from "lucide-react";
+import { doc, deleteDoc } from "firebase/firestore";
+import { db } from "../../services/firebase";
 
 const getSlot = (order: Order): string => {
     const raw = (order as any).slot || (order as any).timeSlot || (order.items?.[0] as any)?.timeSlot || order.items?.[0]?.name || "";
@@ -23,6 +25,7 @@ export default function Orders() {
     const [searchQuery, setSearchQuery] = useState("");
     const [slotFilter, setSlotFilter] = useState("all");
     const [loading, setLoading] = useState(true);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     useEffect(() => {
         fetchOrders();
@@ -37,6 +40,44 @@ export default function Orders() {
             console.error("Error fetching orders:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        
+        const isConfirmed = window.confirm(
+            `⚠️ Are you sure you want to delete ${selectedIds.length} order(s)?\n\nThis will permanently remove them from the database.`
+        );
+        
+        if (!isConfirmed) return;
+        
+        setLoading(true);
+        try {
+            const deletePromises = selectedIds.map(id => deleteDoc(doc(db, "orders", id)));
+            await Promise.all(deletePromises);
+            alert(`✅ Successfully deleted ${selectedIds.length} order(s).`);
+            setSelectedIds([]); // Clear selection after successful deletion
+            fetchOrders(); // Refresh the list
+        } catch (error: any) {
+            console.error("Bulk delete error:", error);
+            alert("❌ Failed to delete orders: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleSelection = (orderId: string) => {
+        setSelectedIds(prev => 
+            prev.includes(orderId) ? prev.filter(id => id !== orderId) : [...prev, orderId]
+        );
+    };
+
+    const toggleAllSelection = () => {
+        if (selectedIds.length === filteredOrders.length && filteredOrders.length > 0) {
+            setSelectedIds([]); // Deselect all
+        } else {
+            setSelectedIds(filteredOrders.map(o => o.id)); // Select all filtered
         }
     };
 
@@ -81,10 +122,14 @@ export default function Orders() {
         });
     }, [orders, filter, searchQuery, slotFilter]);
 
+    const pendingCount = orders.filter(o => o.status === 'pending' || !o.status).length;
+    const deliveredCount = orders.filter(o => o.status === 'delivered' || o.status === 'completed').length;
+    const allCount = orders.length;
+
     const tabs = [
-        { id: "pending", label: "Pending" },
-        { id: "delivered", label: "Delivered" },
-        { id: "all", label: "All Orders" },
+        { id: "pending", label: "Pending", count: pendingCount },
+        { id: "delivered", label: "Delivered", count: deliveredCount },
+        { id: "all", label: "All Orders", count: allCount },
     ];
 
     if (loading) {
@@ -101,7 +146,29 @@ export default function Orders() {
         <div className="animate-fade-in-up manage-Orders-admin">
             <div className="flex justify-between items-center mb-6">
                 <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#ffffff" }}>Manage Orders</h2>
-                <Button onClick={fetchOrders} variant="outline" size="sm" style={{ padding: "2px 4px" }}>Refresh</Button>
+                <div>
+                    {selectedIds.length > 0 ? (
+                        <Button 
+                            onClick={handleBulkDelete} 
+                            disabled={loading}
+                            className="bg-red-500 hover:bg-red-600 text-white border-0 shadow-lg" 
+                            size="sm" 
+                            style={{ padding: "6px 12px" }}
+                        >
+                            {loading ? "Deleting..." : (
+                                <>
+                                    <Trash2 size={16} className="mr-2 inline" />
+                                    Delete {selectedIds.length} Selected
+                                </>
+                            )}
+                        </Button>
+                    ) : (
+                        <Button onClick={fetchOrders} variant="outline" size="sm" style={{ padding: "4px 8px" }}>
+                            <RefreshCw size={14} className="mr-1.5 inline" />
+                            Refresh
+                        </Button>
+                    )}
+                </div>
             </div>
 
             <div className="flex flex-col gap-4 mb-6">
@@ -120,6 +187,10 @@ export default function Orders() {
                                 transition: "all 0.2s",
                                 flex: "1 1 auto",
                                 textAlign: "center",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "6px",
                                 background: filter === tab.id
                                     ? "linear-gradient(to right, #f97316, #f59e0b)"
                                     : "transparent",
@@ -128,6 +199,15 @@ export default function Orders() {
                             }}
                         >
                             {tab.label}
+                            <span style={{ 
+                                backgroundColor: filter === tab.id ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.06)", 
+                                padding: "1px 6px", 
+                                borderRadius: "10px", 
+                                fontSize: "11px",
+                                fontWeight: 800
+                            }}>
+                                {tab.count}
+                            </span>
                         </button>
                     ))}
                 </div>
@@ -177,6 +257,15 @@ export default function Orders() {
                     <table className="admin-table">
                         <thead>
                             <tr>
+                                <th style={{ width: "40px", textAlign: "center" }}>
+                                    <input 
+                                        type="checkbox" 
+                                        className="rounded border-slate-300 text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                                        checked={selectedIds.length > 0 && selectedIds.length === filteredOrders.length}
+                                        onChange={toggleAllSelection}
+                                        disabled={filteredOrders.length === 0}
+                                    />
+                                </th>
                                 <th>Order #</th>
                                 <th>Date</th>
                                 <th>Customer</th>
@@ -198,7 +287,18 @@ export default function Orders() {
                                 filteredOrders.map((order, index) => {
                                     const slot = getSlot(order);
                                     return (
-                                    <tr key={order.id}>
+                                    <tr 
+                                        key={order.id} 
+                                        className={`transition-colors ${selectedIds.includes(order.id) ? 'bg-orange-50/80' : 'hover:bg-slate-50'}`}
+                                    >
+                                        <td className="text-center">
+                                            <input 
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-orange-500 focus:ring-orange-500 w-4 h-4 cursor-pointer"
+                                                checked={selectedIds.includes(order.id)}
+                                                onChange={() => toggleSelection(order.id)}
+                                            />
+                                        </td>
                                         <td className="whitespace-nowrap text-sm font-bold text-slate-800">
                                             #{index + 1}
                                         </td>

@@ -142,6 +142,33 @@ export const getAllOrdersEnriched = async (): Promise<Order[]> => {
     return enrichOrdersWithUserData(orders, users);
 };
 
+export const factoryResetData = async () => {
+    const collectionsToClear = [
+        "orders",
+        "balanceRequests",
+        "transactions",
+        "notifications",
+        "reports"
+    ];
+
+    let totalDeleted = 0;
+
+    for (const colName of collectionsToClear) {
+        const q = query(collection(db, colName));
+        const snapshot = await getDocs(q);
+        
+        // Batch deletion for performance and safety
+        const deletePromises = snapshot.docs.map(docSnap => 
+            deleteDoc(doc(db, colName, docSnap.id))
+        );
+        
+        await Promise.all(deletePromises);
+        totalDeleted += snapshot.size;
+    }
+    
+    return totalDeleted; // Return total number of deleted documents
+};
+
 export const backfillUserIds = async () => {
     const { collection, getDocs, doc, updateDoc, setDoc } = await import('firebase/firestore');
     const usersSnapshot = await getDocs(collection(db, "users"));
