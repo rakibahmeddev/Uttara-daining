@@ -443,8 +443,8 @@ export default function StudentHome() {
             <div className="space-y-4 overflow-y-auto flex-1" style={{ padding: '20px' }}>
               {/* Meal info */}
               <div
-                className="flex items-center space-x-4 p-4 rounded-xl"
-                style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
+                className="flex items-center p-4 rounded-xl"
+                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', gap: '20px' }}
               >
                 {confirmModal.meal?.image ? (
                   <img
