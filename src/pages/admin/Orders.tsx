@@ -126,6 +126,19 @@ export default function Orders() {
     const deliveredCount = orders.filter(o => o.status === 'delivered' || o.status === 'completed').length;
     const allCount = orders.length;
 
+    const pendingSlotCounts = useMemo(() => {
+        const counts = { Breakfast: 0, Lunch: 0, Dinner: 0 };
+        orders.forEach(order => {
+            if (order.status === 'pending' || !order.status) {
+                const s = getSlot(order);
+                if (s === 'Breakfast') counts.Breakfast++;
+                if (s === 'Lunch') counts.Lunch++;
+                if (s === 'Dinner') counts.Dinner++;
+            }
+        });
+        return counts;
+    }, [orders]);
+
     const tabs = [
         { id: "pending", label: "Pending", count: pendingCount },
         { id: "delivered", label: "Delivered", count: deliveredCount },
@@ -234,9 +247,9 @@ export default function Orders() {
                             style={{ padding: "12px 36px 12px 42px", width: "100%" }}
                         >
                             <option value="all">All Slots</option>
-                            <option value="Breakfast">Breakfast</option>
-                            <option value="Lunch">Lunch</option>
-                            <option value="Dinner">Dinner</option>
+                            <option value="Breakfast">Breakfast {filter === 'pending' ? `(${pendingSlotCounts.Breakfast})` : ''}</option>
+                            <option value="Lunch">Lunch {filter === 'pending' ? `(${pendingSlotCounts.Lunch})` : ''}</option>
+                            <option value="Dinner">Dinner {filter === 'pending' ? `(${pendingSlotCounts.Dinner})` : ''}</option>
                         </select>
                     </div>
 

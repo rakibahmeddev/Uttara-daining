@@ -102,22 +102,52 @@ export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = f
         }
     }
 
+    let totalQuantity = 0;
+    if (Array.isArray(items)) {
+        totalQuantity = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+    }
+    if (totalQuantity < 1 || totalQuantity > 3) {
+        throw new Error("You can order a maximum of 3 meals per request.");
+    }
+
     await runTransaction(db, async (transaction) => {
         const userRef = doc(db, "users", userId);
         const userDoc = await transaction.get(userRef);
 
         if (!userDoc.exists()) throw "User not found";
+        
+        const userData = userDoc.data();
 
-        const currentBalance = userDoc.data().balance || 0;
+        // Target date extraction and validation
+        let targetDate = "";
+        if (Array.isArray(items) && items.length > 0) {
+            targetDate = items[0].date || "";
+        }
+        if (!targetDate) {
+            throw new Error("Meal date is missing from the order.");
+        }
+
+        const orderedMealsCount = userData.orderedMealsCount || {};
+        const alreadyOrderedCount = orderedMealsCount[targetDate] || 0;
+
+        if (alreadyOrderedCount + totalQuantity > 3) {
+            throw new Error(`You can order a maximum of 3 meals per day. You have already ordered ${alreadyOrderedCount} meals for ${targetDate}.`);
+        }
+
+        const currentBalance = userData.balance || 0;
         if (currentBalance < totalAmount) {
             throw "Insufficient balance";
         }
 
         const newBalance = currentBalance - totalAmount;
-        transaction.update(userRef, { balance: newBalance });
+        orderedMealsCount[targetDate] = alreadyOrderedCount + totalQuantity;
+
+        transaction.update(userRef, { 
+            balance: newBalance,
+            orderedMealsCount: orderedMealsCount
+        });
 
         // Create Order — persist all display fields for admin dashboard
-        const userData = userDoc.data();
         const orderRef = doc(collection(db, "orders"));
         transaction.set(orderRef, {
             userId,
