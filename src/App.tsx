@@ -103,6 +103,7 @@ function App() {
               <Route path="reports" element={<Reports />} />
               <Route path="profile" element={<AdminProfile />} />
               <Route path="custom-css" element={<AdminCustomCSS />} />
+              <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
             </Route>
 
             {/* Manager Routes */}
@@ -123,6 +124,7 @@ function App() {
               <Route path="balance-requests" element={<ManagerBalanceRequests />} />
               <Route path="notifications" element={<ManagerNotifications />} />
               <Route path="profile" element={<ManagerProfile />} />
+              <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
             </Route>
 
             {/* Student Routes */}

@@ -7,7 +7,7 @@ import AlertsBanner from "./AlertsBanner";
 
 export interface NavItem {
     path: string;
-    label: string;
+    label: React.ReactNode;
     icon: LucideIcon;
     color: string;
 }
@@ -86,7 +86,7 @@ export default function DashboardLayout({
                             key={path}
                             to={path}
                             onClick={() => setSidebarOpen(false)}
-                            title={collapsed ? label : ""}
+                            title={collapsed && typeof label === 'string' ? label : ""}
                             className={cn(
                                 "relative flex items-center gap-3 rounded-xl transition-all duration-200",
                                 collapsed && "justify-center",

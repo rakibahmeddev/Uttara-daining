@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { approveBalanceRequest, getUsers } from "../../services/db";
 import { Button } from "../../components/ui/Button";
@@ -19,6 +19,7 @@ export default function BalanceRequests() {
     const [filter, setFilter] = useState("topup");
     const [searchQuery, setSearchQuery] = useState("");
     const [processing, setProcessing] = useState(false);
+    const [manageModalOpen, setManageModalOpen] = useState(false);
 
     useEffect(() => {
         getUsers().then(setUsers).catch(console.error);
@@ -28,8 +29,10 @@ export default function BalanceRequests() {
         const q =
             filter === "all"
                 ? query(collection(db, "balanceRequests"))
-                : filter === "withdraw" || filter === "topup"
-                ? query(collection(db, "balanceRequests"), where("type", "==", filter))
+                : filter === "topup"
+                ? query(collection(db, "balanceRequests"), where("type", "in", ["topup", "add"]))
+                : filter === "withdraw"
+                ? query(collection(db, "balanceRequests"), where("type", "in", ["withdraw", "deduct"]))
                 : query(collection(db, "balanceRequests"), where("status", "==", filter));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -117,7 +120,17 @@ export default function BalanceRequests() {
     const filters = ["topup", "withdraw"] as const;
 
     return (
-        <DashboardPage title="Wallet" subtitle="Review student top-ups, withdrawals, and balance changes">
+        <DashboardPage 
+            title="Balance" 
+            subtitle="Review student top-ups, withdrawals, and balance changes"
+            action={<Button 
+                onClick={() => setManageModalOpen(true)} 
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/20 border-0"
+                style={{ padding: "8px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: 700 }}
+            >
+                Manage Balance
+            </Button>}
+        >
             <div className="flex flex-wrap gap-2" style={{ marginTop: "5px", marginBottom: "10px" }}>
                 {filters.map((status) => (
                     <Button
@@ -170,9 +183,6 @@ export default function BalanceRequests() {
                             filteredRequests.map((request) => (
                                 <tr key={request.id}>
                                     <td className="whitespace-nowrap text-sm text-slate-400">
-                                        <div className="text-[10px] font-bold text-violet-400">
-                                            #{request.requestNumber || "—"}
-                                        </div>
                                         {request.createdAt ? formatDateBD(request.createdAt) : "—"}
                                     </td>
                                     <td className="whitespace-nowrap">
@@ -180,6 +190,7 @@ export default function BalanceRequests() {
                                             name={request.userName}
                                             email={request.userEmail}
                                             userNumericId={request.userNumericId}
+                                            roomNumber={(request as any).roomNumber}
                                         />
                                     </td>
                                     <td className="whitespace-nowrap">
@@ -234,7 +245,212 @@ export default function BalanceRequests() {
                     </tbody>
                 </table>
             </DashboardTableCard>
+            {manageModalOpen && (
+                <ManageBalanceModal 
+                    users={users} 
+                    onClose={() => setManageModalOpen(false)} 
+                    currentUser={currentUser!}
+                />
+            )}
         </DashboardPage>
+    );
+}
+
+import { Search, X, Plus, Minus } from "lucide-react";
+
+function ManageBalanceModal({ users, onClose, currentUser }: { users: UserDoc[], onClose: () => void, currentUser: any }) {
+    const [search, setSearch] = useState("");
+    const [selectedUser, setSelectedUser] = useState<UserDoc | null>(null);
+    const [amount, setAmount] = useState("");
+    const [reason, setReason] = useState("");
+    const [processing, setProcessing] = useState(false);
+    const [liveUsers, setLiveUsers] = useState<UserDoc[]>(users);
+
+    useEffect(() => {
+        import('../../services/db').then(m => m.getUsers().then(setLiveUsers).catch(console.error));
+    }, []);
+
+    const filteredUsers = useMemo(() => {
+        if (!search.trim()) return liveUsers.slice(0, 15);
+        const q = search.toLowerCase();
+        return liveUsers.filter(u => 
+            u.name?.toLowerCase().includes(q) || 
+            u.email?.toLowerCase().includes(q) ||
+            String(u.userId || "").includes(q) ||
+            u.roomNumber?.toLowerCase().includes(q)
+        ).slice(0, 15);
+    }, [liveUsers, search]);
+
+    const handleTransaction = async (type: 'add' | 'deduct') => {
+        if (!selectedUser) return;
+        const amt = Number(amount);
+        if (isNaN(amt) || amt <= 0) return alert("Enter a valid amount");
+        if (type === 'deduct' && amt > (selectedUser.balance || 0)) return alert("Insufficient balance");
+        
+        setProcessing(true);
+        try {
+            const batch = writeBatch(db);
+            const delta = type === 'add' ? amt : -amt;
+            const newBalance = (selectedUser.balance || 0) + delta;
+            
+            batch.update(doc(db, "users", selectedUser.id), { balance: newBalance });
+            
+            const reqRef = doc(collection(db, "balanceRequests"));
+            batch.set(reqRef, {
+                userId: selectedUser.uid,
+                userName: selectedUser.name || "Unknown",
+                userEmail: selectedUser.email || "",
+                userNumericId: selectedUser.userNumericId || null,
+                amount: delta,
+                type: type,
+                reason: reason || (type === 'add' ? "Manual Addition" : "Manual Deduction"),
+                status: "approved",
+                createdAt: serverTimestamp(),
+                processedAt: serverTimestamp(),
+                processedBy: currentUser.uid,
+                balanceDeductedAtSubmit: true
+            });
+            
+            const transRef = doc(collection(db, "transactions"));
+            batch.set(transRef, {
+                userId: selectedUser.uid,
+                amount: amt,
+                type: type === 'add' ? "credit" : "debit",
+                description: reason || (type === 'add' ? "Manual Addition" : "Manual Deduction"),
+                balanceRequestId: reqRef.id,
+                createdAt: serverTimestamp()
+            });
+            
+            await batch.commit();
+            alert(`Successfully ${type === 'add' ? 'added' : 'deducted'} ৳${amt}`);
+            
+            // Re-fetch users silently in the background
+            import('../../services/db').then(m => m.getUsers().then(newUsers => {
+                // Update the parent's users state here if we could, but easiest is just close and refresh
+            }));
+
+            onClose();
+        } catch (error) {
+            console.error(error);
+            alert("Failed to update balance");
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] px-4 pb-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden flex flex-col">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
+                    <h3 style={{ fontWeight: "800", fontSize: "18px", color: "#0f172a", margin: 0 }}>Manage Balance</h3>
+                    <button onClick={onClose} style={{ color: "#94a3b8", background: "transparent", border: "none", cursor: "pointer", padding: "8px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={20}/></button>
+                </div>
+                
+                <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {!selectedUser ? (
+                        <>
+                            <div className="relative">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+                                <input 
+                                    type="text"
+                                    placeholder="Search user by name, ID, room..."
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    style={{ width: "100%", backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "8px", paddingLeft: "38px", paddingRight: "16px", paddingTop: "10px", paddingBottom: "10px", fontSize: "14px", outline: "none" }}
+                                    autoFocus
+                                />
+                            </div>
+                            
+                            <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
+                                {filteredUsers.length === 0 ? (
+                                    <p className="text-sm text-slate-500 text-center py-4">No users found</p>
+                                ) : (
+                                    filteredUsers.map(u => (
+                                        <button 
+                                            key={u.uid}
+                                            onClick={() => setSelectedUser(u)}
+                                            className="flex items-center justify-between rounded-md border border-slate-100 bg-white hover:bg-slate-50 text-left transition-all shadow-sm hover:shadow-md"
+                                            style={{ margin: "6px 0", padding: "12px 16px" }}
+                                        >
+                                            <div>
+                                                <p className="font-bold text-sm text-slate-900">{u.name}</p>
+                                                <p className="text-[11px] text-slate-500 mt-0.5 font-medium">ID: {u.userId || '—'} | Rm: {u.roomNumber || '—'}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-0.5">Balance</p>
+                                                <p className="font-bold text-emerald-500 text-sm">৳{u.balance || 0}</p>
+                                            </div>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col gap-5 animate-slide-left">
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderRadius: "12px", backgroundColor: "#fff7ed", border: "1px solid #ffedd5", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}>
+                                <div>
+                                    <p style={{ fontSize: "12px", color: "#ea580c", fontWeight: "bold", marginBottom: "4px" }}>Selected User</p>
+                                    <p style={{ fontWeight: "bold", fontSize: "15px", color: "#0f172a", marginBottom: "4px" }}>{selectedUser.name}</p>
+                                    <p style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>ID: {selectedUser.userId || '—'} | Rm: {selectedUser.roomNumber || '—'}</p>
+                                </div>
+                                <div style={{ textAlign: "right" }}>
+                                    <p style={{ fontSize: "10px", color: "#ea580c", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>Current Bal</p>
+                                    <p style={{ fontWeight: "bold", color: "#10b981", fontSize: "16px" }}>৳{selectedUser.balance || 0}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", color: "#475569", marginBottom: "8px", marginLeft: "4px" }}>Amount</label>
+                                    <input 
+                                        type="number"
+                                        placeholder="e.g. 500"
+                                        value={amount}
+                                        onChange={e => setAmount(e.target.value)}
+                                        style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "12px 16px", fontSize: "14px", outline: "none", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", color: "#475569", marginBottom: "8px", marginLeft: "4px" }}>Reason (Optional)</label>
+                                    <input 
+                                        type="text"
+                                        placeholder="e.g. Cash"
+                                        value={reason}
+                                        onChange={e => setReason(e.target.value)}
+                                        style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "12px 16px", fontSize: "14px", outline: "none", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "8px" }}>
+                                <button 
+                                    onClick={() => handleTransaction('add')} 
+                                    disabled={processing || !amount}
+                                    style={{ backgroundColor: "#10b981", color: "white", padding: "13px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", borderRadius: "10px", border: "none", fontWeight: "700", fontSize: "15px", cursor: (processing || !amount) ? "not-allowed" : "pointer", opacity: (processing || !amount) ? 0.5 : 1 }}
+                                >
+                                    <Plus size={18} /> Add 
+                                </button>
+                                <button 
+                                    onClick={() => handleTransaction('deduct')} 
+                                    disabled={processing || !amount}
+                                    style={{ backgroundColor: "#ef4444", color: "white", padding: "13px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", borderRadius: "10px", border: "none", fontWeight: "700", fontSize: "15px", cursor: (processing || !amount) ? "not-allowed" : "pointer", opacity: (processing || !amount) ? 0.5 : 1 }}
+                                >
+                                    <Minus size={18} /> Deduct
+                                </button>
+                            </div>
+                            
+                            <button 
+                                onClick={() => setSelectedUser(null)}
+                                className="text-xs text-slate-500 hover:text-slate-800 hover:underline mt-2 font-semibold transition-colors"
+                                disabled={processing}
+                            >
+                                ← Choose a different user
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -274,3 +490,4 @@ function StatusBadge({ status }: { status: string }) {
         </span>
     );
 }
+

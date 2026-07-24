@@ -2,23 +2,17 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
-import Modal from "../../components/ui/Modal";
-import { DollarSign, Search } from "lucide-react";
-import { collection, onSnapshot, query, addDoc, serverTimestamp } from "firebase/firestore";
+import { Search, Pencil } from "lucide-react";
+import { collection, onSnapshot, query, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { Avatar } from "../../components/admin/UserDisplay";
 import { sortUsersByNumericId } from "../../utils/userMapping";
-import { updateUserBalance } from "../../services/db";
 import type { UserDoc } from "../../types";
 
 export default function ManagerUsers() {
     const { currentUser } = useAuth();
     const [users, setUsers] = useState<UserDoc[]>([]);
-    const [selectedUser, setSelectedUser] = useState<UserDoc | null>(null);
-    const [amount, setAmount] = useState("");
-    const [reason, setReason] = useState("");
-    const [transactionType, setTransactionType] = useState("add");
-    const [loading, setLoading] = useState(false);
+    const [editUser, setEditUser] = useState<UserDoc | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
@@ -30,62 +24,6 @@ export default function ManagerUsers() {
         return () => unsubscribe();
     }, []);
 
-    const handleSubmitRequest = async (e) => {
-        e.preventDefault();
-        if (!selectedUser || !amount) return;
-
-        const numAmount = Number(amount);
-        if (numAmount < 40) {
-            alert("Minimum amount is ৳40.");
-            return;
-        }
-        if (numAmount > 3000) {
-            alert("Maximum amount is ৳3,000.");
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const finalAmount = transactionType === 'deduct' ? -Number(amount) : Number(amount);
-            const description = transactionType === 'deduct' 
-                ? `Manager deducted balance${reason ? ': ' + reason : ''}` 
-                : `Manager added balance${reason ? ': ' + reason : ''}`;
-
-            // Update user balance directly
-            await updateUserBalance(selectedUser.id, finalAmount, description);
-
-            // Also write to balanceRequests so it appears in Wallet history
-            const { generateRequestNumber } = await import('../../utils/idGenerator');
-            const requestNumber = await generateRequestNumber();
-            await addDoc(collection(db, "balanceRequests"), {
-                userId: selectedUser.id,
-                userName: selectedUser.name,
-                userEmail: selectedUser.email,
-                userNumericId: selectedUser.userId ?? null,
-                requestedBy: currentUser.uid,
-                requestedByName: currentUser.name,
-                amount: Math.abs(Number(amount)),
-                type: transactionType === 'deduct' ? 'withdraw' : 'topup',
-                reason: reason || (transactionType === 'deduct' ? 'Manager deduction' : 'Manager top-up'),
-                requestNumber,
-                status: "approved",
-                approvedBy: currentUser.uid,
-                approvedAt: serverTimestamp(),
-                createdAt: serverTimestamp(),
-            });
-
-            alert("Balance updated successfully!");
-            setSelectedUser(null);
-            setAmount("");
-            setReason("");
-            setTransactionType("add");
-        } catch (error) {
-            console.error("Error updating balance:", error);
-            alert("Failed to update balance");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     return (
         <div className="space-y-6 animate-fade-in-up">
@@ -119,7 +57,7 @@ export default function ManagerUsers() {
                                 <th>Room No.</th>
                                 <th>Role</th>
                                 <th>Balance</th>
-                                <th className="text-right">Actions</th>
+
                             </tr>
                         </thead>
                         <tbody>
@@ -147,7 +85,7 @@ export default function ManagerUsers() {
                                         String(user.userId || '').includes(query)
                                     );
                                 }).map((user) => (
-                                    <tr key={user.id}>
+                                    <tr key={user.id} onClick={() => setEditUser(user)} style={{ cursor: "pointer" }} className="hover:bg-orange-50 transition-colors">
                                         <td className="whitespace-nowrap">
                                             <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full text-slate-700">
                                                 {user.userId ?? "—"}
@@ -182,15 +120,6 @@ export default function ManagerUsers() {
                                             <div className="text-sm font-extrabold text-slate-800">৳{user.balance || 0}</div>
                                         </td>
                                         <td className="whitespace-nowrap text-right text-sm font-semibold space-x-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => setSelectedUser(user)}
-                                                className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                                            >
-                                                <DollarSign size={16} className="mr-1 inline" />
-                                                Manage Funds
-                                            </Button>
                                         </td>
                                     </tr>
                                 ))
@@ -200,100 +129,178 @@ export default function ManagerUsers() {
                 </div>
             </div>
 
-            <Modal
-                isOpen={!!selectedUser}
-                onClose={() => {
-                    setSelectedUser(null);
-                    setAmount("");
-                    setReason("");
-                    setTransactionType("add");
-                }}
-                title={`Manage Funds: ${selectedUser?.name}`}
-            >
-                <form onSubmit={handleSubmitRequest} className="space-y-5" style={{ padding: "10px 5px" }}>
-                    <div className="bg-blue-50 border border-blue-200 p-3.5 rounded-xl text-sm text-blue-700" style={{ marginBottom: "20px" }}>
-                        ℹ️ This will instantly update the user's balance.
-                    </div>
+            {editUser && (
+                <EditUserModal
+                    user={editUser}
+                    onClose={() => setEditUser(null)}
+                    onSaved={(updated) => {
+                        setUsers(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
+                        setEditUser(null);
+                    }}
+                />
+            )}
+        </div>
+    );
+}
 
-                    <div style={{ marginBottom: "20px" }}>
-                        <label style={{ display: "block", fontSize: "14px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.9)" }}>Action</label>
-                        <div className="flex space-x-3">
-                            <button
-                                type="button"
-                                onClick={() => setTransactionType("add")}
-                                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all cursor-pointer border ${
-                                    transactionType === "add"
-                                        ? "bg-green-50 text-green-600 border-green-200"
-                                        : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
-                                }`}
-                            >
-                                Add Funds
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setTransactionType("deduct")}
-                                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all cursor-pointer border ${
-                                    transactionType === "deduct"
-                                        ? "bg-red-50 text-red-655 border-red-200"
-                                        : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
-                                }`}
-                            >
-                                Deduct Funds
-                            </button>
+function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () => void, onSaved: (u: Partial<UserDoc> & { id: string }) => void }) {
+    const [role, setRole] = useState(user.role || "student");
+    const [name, setName] = useState(user.name || "");
+    const [phone, setPhone] = useState(user.phone || "");
+    const [roomNumber, setRoomNumber] = useState(user.roomNumber || "");
+    const [registrationNumber, setRegistrationNumber] = useState(user.registrationNumber || "");
+    const [departmentName, setDepartmentName] = useState(user.departmentName || "");
+    const [hallName, setHallName] = useState(user.hallName || "");
+    const [password, setPassword] = useState((user as any).password || "");
+    const [email, setEmail] = useState(user.email || "");
+    const [balance, setBalance] = useState(user.balance || 0);
+    const [saving, setSaving] = useState(false);
+
+    const roles = ["student", "manager", "admin"];
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const updates = { role, name, phone, roomNumber, registrationNumber, departmentName, hallName, password, email, balance: Number(balance) };
+            await updateDoc(doc(db, "users", user.id), updates);
+            onSaved({ id: user.id, ...updates });
+        } catch (e) {
+            console.error(e);
+            alert("Failed to save changes");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh", paddingLeft: "16px", paddingRight: "16px", backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+            <div style={{ backgroundColor: "#fff", borderRadius: "16px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", width: "100%", maxWidth: "440px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #f1f5f9", backgroundColor: "#f8fafc" }}>
+                    <h3 style={{ fontWeight: 800, fontSize: "18px", color: "#0f172a", margin: 0 }}>Edit User</h3>
+                    <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", padding: "6px", borderRadius: "50%", display: "flex" }}>✕</button>
+                </div>
+
+                {/* User info */}
+                <div style={{ padding: "20px 24px 0", maxHeight: "65vh", overflowY: "auto" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#fff7ed", borderRadius: "12px", border: "1px solid #ffedd5", marginBottom: "20px" }}>
+                        <div style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: "18px", flexShrink: 0 }}>
+                            {(user.name || user.email || "?")[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <p style={{ fontWeight: 700, fontSize: "15px", color: "#0f172a", margin: 0 }}>{user.name || "—"}</p>
+                            <p style={{ fontSize: "12px", color: "#64748b", margin: "3px 0 0" }}>ID: {user.userId || "—"} | Rm: {user.roomNumber || "—"}</p>
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: "20px" }}>
-                        <label style={{ display: "block", fontSize: "14px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.9)" }}>Amount (৳)</label>
-                        <Input
-                            type="number"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            required
-                            min="40"
-                            max="3000"
-                            placeholder="Min ৳40 — Max ৳3,000"
-                        />
-                        {amount && (Number(amount) < 40 || Number(amount) > 3000) && (
-                            <p style={{ color: '#f87171', fontSize: '12px', marginTop: '5px' }}>
-                                {Number(amount) < 40 ? 'Minimum amount is ৳40.' : 'Maximum amount is ৳3,000.'}
-                            </p>
-                        )}
+                    {/* Name & Email */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Name</label>
+                            <input
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Email</label>
+                            <input
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
                     </div>
 
-                    <div style={{ marginBottom: "20px" }}>
-                        <label style={{ display: "block", fontSize: "14px", fontWeight: 600, marginBottom: "8px", color: "rgba(255,255,255,0.9)" }}>Reason <span style={{ fontWeight: 400, color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>(Optional)</span></label>
-                        <textarea
-                            className="w-full px-4 py-3 bg-white border border-slate-200 text-slate-800 rounded-xl placeholder-slate-400 text-sm focus:outline-none focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20 transition-all duration-200"
-                            rows={3}
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            placeholder="Explain why this balance change is needed..."
-                        />
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Phone</label>
+                            <input
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Password/PIN</label>
+                            <input
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
                     </div>
 
-                    <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-600 border border-slate-200/50" style={{ marginBottom: "24px", marginTop: "10px" }}>
-                        <p>Current Balance: <span className="font-extrabold text-slate-800">৳{selectedUser?.balance || 0}</span></p>
-                        {amount && (
-                            <p className="mt-1.5 pt-1.5 border-t border-slate-200">
-                                Requested New Balance: <span className="font-extrabold text-orange-600">
-                                    ৳{(selectedUser?.balance || 0) + (transactionType === 'deduct' ? -Number(amount) : Number(amount))}
-                                </span>
-                            </p>
-                        )}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Reg. Number</label>
+                            <input
+                                value={registrationNumber}
+                                onChange={e => setRegistrationNumber(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Department</label>
+                            <input
+                                value={departmentName}
+                                onChange={e => setDepartmentName(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
                     </div>
 
-                    <Button
-                        type="submit"
-                        className="w-full"
-                        style={{ padding: "14px 0", fontSize: "15px", fontWeight: 700, marginTop: "20px" }}
-                        variant={transactionType === 'deduct' ? 'danger' : 'primary'}
-                        disabled={loading}
-                    >
-                        {loading ? "Processing..." : "Confirm Balance Update"}
-                    </Button>
-                </form>
-            </Modal>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Hall Name</label>
+                            <input
+                                value={hallName}
+                                onChange={e => setHallName(e.target.value)}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Current Balance (৳)</label>
+                            <input
+                                type="number"
+                                value={balance}
+                                onChange={e => setBalance(Number(e.target.value))}
+                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Role */}
+                    <div style={{ marginBottom: "24px" }}>
+                        <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "10px" }}>Role</label>
+                        <div style={{ display: "flex", gap: "10px" }}>
+                            {roles.map(r => (
+                                <button
+                                    key={r}
+                                    onClick={() => setRole(r)}
+                                    style={{
+                                        flex: 1, padding: "10px 8px", borderRadius: "10px", border: `2px solid ${role === r ? (r === 'admin' ? '#9333ea' : r === 'manager' ? '#3b82f6' : '#10b981') : '#e2e8f0'}`,
+                                        backgroundColor: role === r ? (r === 'admin' ? '#faf5ff' : r === 'manager' ? '#eff6ff' : '#f0fdf4') : '#fff',
+                                        color: role === r ? (r === 'admin' ? '#9333ea' : r === 'manager' ? '#3b82f6' : '#10b981') : '#64748b',
+                                        fontWeight: 700, fontSize: "13px", cursor: "pointer", textTransform: "capitalize", transition: "all 0.15s"
+                                    }}
+                                >
+                                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div style={{ display: "flex", gap: "10px", padding: "16px 24px", borderTop: "1px solid #f1f5f9" }}>
+                    <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", backgroundColor: "#fff", color: "#64748b", fontWeight: 700, fontSize: "14px", cursor: "pointer" }}>Cancel</button>
+                    <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: "12px", borderRadius: "10px", border: "none", backgroundColor: "#f97316", color: "#fff", fontWeight: 700, fontSize: "14px", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
+                        {saving ? "Saving..." : "Save Changes"}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

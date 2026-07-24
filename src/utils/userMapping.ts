@@ -68,6 +68,7 @@ export function enrichBalanceRequestsWithUserData(
             userName: request.userName || user?.name || "",
             userEmail: request.userEmail || user?.email || "",
             userNumericId: request.userNumericId ?? user?.userId ?? null,
+            roomNumber: (request as any).roomNumber || user?.roomNumber || "",
         };
     });
 }

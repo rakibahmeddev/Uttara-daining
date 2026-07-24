@@ -13,9 +13,11 @@ interface GuestOrderModal {
 export default function RiderDeliveryScreen() {
   const { currentUser } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [deliveredOrders, setDeliveredOrders] = useState<Order[]>([]);
+  const [deliveredOrdersToday, setDeliveredOrdersToday] = useState<Order[]>([]);
+  const [deliveredOrdersPast, setDeliveredOrdersPast] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'delivered'>('pending');
+  const [deliveryFilter, setDeliveryFilter] = useState<'today' | 'past'>('today');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [guestModal, setGuestModal] = useState<GuestOrderModal>({ room: '', isOpen: false });
 
@@ -61,15 +63,27 @@ export default function RiderDeliveryScreen() {
     } catch { return '—'; }
   };
 
+  const formatMealDate = (dateStr: string | undefined): string => {
+    const finalDate = dateStr || getLocalTodayString();
+    try {
+      const d = new Date(finalDate);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      }
+    } catch {}
+    return finalDate;
+  };
+
   // Active orders listener
   useEffect(() => {
-    const q = query(collection(db, 'orders'), where("status", "in", ["pending", "active", "processing", "delivered"]));
+    const q = query(collection(db, 'orders'), where("status", "in", ["pending", "active", "processing", "delivered", "cancelled"]));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ordersData = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
       const todayStr = getLocalTodayString();
       
       const pending: Order[] = [];
-      const delivered: Order[] = [];
+      const deliveredToday: Order[] = [];
+      const deliveredPast: Order[] = [];
 
       ordersData.forEach(order => {
         let isToday = false;
@@ -79,31 +93,44 @@ export default function RiderDeliveryScreen() {
           isToday = (new Date(d.getTime() - offset)).toISOString().slice(0, 10) === todayStr;
         } else if (order.date === todayStr) {
           isToday = true;
-        } else {
+        } else if (!order.createdAt && !order.date) {
           isToday = true;
         }
 
-        if (isToday && order.status !== "cancelled") {
-          if (order.status === "delivered") {
-            // Only show meals delivered by THIS rider
-            if (order.deliveredBy === currentUser?.uid) {
-              delivered.push(order);
-            }
+        if (order.status === "cancelled") {
+          if (isToday) {
+            deliveredToday.push(order);
           } else {
+            deliveredPast.push(order);
+          }
+        } else if (order.status === "delivered") {
+          // Only show meals delivered by THIS rider
+          if (order.deliveredBy === currentUser?.uid) {
+            if (isToday) {
+              deliveredToday.push(order);
+            } else {
+              deliveredPast.push(order);
+            }
+          }
+        } else {
+          if (isToday) {
             pending.push(order);
           }
         }
       });
       
-      // Sort delivered orders by time descending
-      delivered.sort((a, b) => {
+      const sortDesc = (a: Order, b: Order) => {
         const timeA = a.createdAt?.seconds || 0;
         const timeB = b.createdAt?.seconds || 0;
         return timeB - timeA;
-      });
+      };
+
+      deliveredToday.sort(sortDesc);
+      deliveredPast.sort(sortDesc);
 
       setOrders(pending);
-      setDeliveredOrders(delivered);
+      setDeliveredOrdersToday(deliveredToday);
+      setDeliveredOrdersPast(deliveredPast);
       setLoading(false);
     }, (err) => {
       console.error(err);
@@ -185,7 +212,7 @@ export default function RiderDeliveryScreen() {
     try {
       if (paymentMethod === 'balance') {
         // Deduct from balance via transaction
-        await placeOrder(user.id, [{ name: meal.name, price: meal.price, quantity: qty }], totalAmount);
+        await placeOrder(user.id, [{ name: meal.name, price: meal.price, quantity: qty, date: meal.date }], totalAmount);
         alert(`✅ Order placed for ${user.name}! ৳${totalAmount} deducted from balance.`);
       } else {
         // Cash payment — just record the order, no deduction
@@ -196,7 +223,7 @@ export default function RiderDeliveryScreen() {
           userEmail: user.email || '',
           userNumericId: user.userId || null,
           roomNumber: user.roomNumber || guestModal.room,
-          items: [{ name: meal.name, price: meal.price, quantity: qty }],
+          items: [{ name: meal.name, price: meal.price, quantity: qty, date: meal.date }],
           totalAmount,
           paymentMethod: 'cash',
           status: 'pending',
@@ -242,7 +269,7 @@ export default function RiderDeliveryScreen() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 animate-fade-in-up mb-10">
+    <div className="w-full min-h-[100vh] bg-white rounded-t-[32px] sm:rounded-[32px] shadow-sm max-w-6xl mx-auto animate-fade-in-up" style={{ margin: '10px auto 0', padding: '16px 12px 60px' }}>
 
       {/* Header Tabs */}
       <div style={{ display: 'flex', gap: '12px', padding: '16px 16px 8px 16px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -263,7 +290,7 @@ export default function RiderDeliveryScreen() {
         >
           All Meals
           <span className={`${activeTab === 'delivered' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'} rounded-full px-2 py-0.5 text-xs`}>
-            {deliveredOrders.length}
+            {deliveredOrdersToday.length + deliveredOrdersPast.length}
           </span>
         </button>
       </div>
@@ -364,13 +391,9 @@ export default function RiderDeliveryScreen() {
                             <td style={{ padding: '12px 6px', verticalAlign: 'middle' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 {order.items?.map((item, idx) => (
-                                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    <div className="bg-indigo-50 rounded" style={{ padding: '3px' }}>
-                                      <svg style={{ width: '12px', height: '12px' }} className="text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z"></path>
-                                      </svg>
-                                    </div>
+                                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <p className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{item.quantity}x {item.name}</p>
+                                    <p className="font-medium text-slate-500" style={{ fontSize: '10px' }}>{formatMealDate(item.date)}</p>
                                   </div>
                                 ))}
                               </div>
@@ -415,72 +438,160 @@ export default function RiderDeliveryScreen() {
       )}
 
       {activeTab === 'delivered' && (
-        <>
-          {deliveredOrders.length === 0 ? (
-            <div className="max-w-2xl mx-auto p-12 text-center bg-white rounded-3xl shadow-sm border border-gray-100 m-6 mt-8 animate-fade-in-up">
-              <div className="text-6xl mb-6">📭</div>
-              <h2 className="text-2xl font-bold text-gray-900">No deliveries yet</h2>
-              <p className="text-gray-500 mt-2">Meals you deliver today will appear here.</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mt-4" style={{ margin: '0 12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '20px', marginTop: '16px' }}>
+          
+          {/* Sub-filters */}
+          <div style={{ display: 'flex', gap: '8px', padding: '0 12px' }}>
+            <button
+              onClick={() => setDeliveryFilter('today')}
+              className={`flex-1 font-bold rounded-xl transition-all ${deliveryFilter === 'today' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              style={{ padding: '10px', fontSize: '13px' }}
+            >
+              Today's Meals
+            </button>
+            <button
+              onClick={() => setDeliveryFilter('past')}
+              className={`flex-1 font-bold rounded-xl transition-all ${deliveryFilter === 'past' ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+              style={{ padding: '10px', fontSize: '13px' }}
+            >
+              Past Deliveries
+            </button>
+          </div>
+          
+          {deliveryFilter === 'today' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{ margin: '0 12px' }}>
               <div className="bg-emerald-50 border-b border-emerald-100 flex items-center justify-between" style={{ padding: '14px 16px' }}>
                 <h2 className="font-bold text-emerald-800 flex items-center gap-2" style={{ fontSize: '16px' }}>
                   <svg style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
-                  Meals Delivered By You Today
+                  Delivered Today
                 </h2>
+                <span className="font-bold text-emerald-700 bg-emerald-100 rounded-full" style={{ padding: '3px 10px', fontSize: '11px' }}>
+                  {deliveredOrdersToday.length} {deliveredOrdersToday.length === 1 ? 'Meal' : 'Meals'}
+                </span>
               </div>
-              <div className="overflow-x-auto" style={{ padding: '0 16px 8px 16px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr className="border-b-2 border-slate-200 text-slate-400" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      <th style={{ padding: '12px 6px 10px 0' }}>User & Room</th>
-                      <th style={{ padding: '12px 6px 10px 6px' }}>Meal Items</th>
-                      <th style={{ padding: '12px 6px 10px 6px' }}>Order Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {deliveredOrders.map((order) => (
-                      <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                        <td style={{ padding: '14px 6px 14px 0', verticalAlign: 'middle', minWidth: '100px' }}>
-                          <div className="font-bold text-slate-800" style={{ fontSize: '13px', marginBottom: '3px' }}>
-                            {order.userName || "Unknown"}
-                          </div>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <span className="font-semibold" style={{ fontSize: '10px', color: '#6366f1', background: '#eef2ff', borderRadius: '4px', padding: '2px 6px' }}>
-                              #{order.userNumericId || "—"}
-                            </span>
-                            <span className="font-bold text-slate-600 bg-slate-100 rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>
-                              Rm {order.roomNumber || "—"}
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '14px 6px', verticalAlign: 'middle' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {order.items?.map((item, idx) => (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <div className="bg-emerald-50 rounded" style={{ padding: '3px' }}>
-                                  <svg style={{ width: '12px', height: '12px' }} className="text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                  </svg>
-                                </div>
-                                <p className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{item.quantity}x {item.name}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td style={{ padding: '14px 6px', verticalAlign: 'middle', minWidth: '70px' }}>
-                          <div className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{formatOrderTime(order.createdAt)}</div>
-                          <div className="text-slate-400 font-medium" style={{ fontSize: '11px' }}>{formatOrderDate(order.createdAt)}</div>
-                        </td>
+              
+              {deliveredOrdersToday.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <p className="text-slate-500 font-medium" style={{ fontSize: '13px' }}>No meals delivered today.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto" style={{ padding: '0 16px 8px 16px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr className="border-b-2 border-slate-200 text-slate-400" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        <th style={{ padding: '12px 6px 10px 0' }}>User & Room</th>
+                        <th style={{ padding: '12px 6px 10px 6px' }}>Meal Items</th>
+                        <th style={{ padding: '12px 6px 10px 6px' }}>Order Time</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {deliveredOrdersToday.map((order) => (
+                        <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td style={{ padding: '14px 6px 14px 0', verticalAlign: 'middle', minWidth: '100px' }}>
+                            <div className="font-bold text-slate-800" style={{ fontSize: '13px', marginBottom: '3px' }}>
+                              {order.userName || "Unknown"}
+                              {order.status === 'cancelled' && (
+                                <span className="ml-2 font-bold text-red-600 bg-red-100 rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>Cancelled</span>
+                              )}
+                              {order.status === 'delivered' && (
+                                <span className="ml-2 font-bold text-emerald-600 bg-emerald-100 rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>Delivered</span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <span className="font-semibold" style={{ fontSize: '10px', color: '#6366f1', background: '#eef2ff', borderRadius: '4px', padding: '2px 6px' }}>#{order.userNumericId || "—"}</span>
+                              <span className="font-bold text-slate-600 bg-slate-100 rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>Rm {order.roomNumber || "—"}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 6px', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {order.items?.map((item, idx) => (
+                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <p className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{item.quantity}x {item.name}</p>
+                                  <p className="font-medium text-slate-500" style={{ fontSize: '10px' }}>{formatMealDate(item.date)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 6px', verticalAlign: 'middle', minWidth: '70px' }}>
+                            <div className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{formatOrderTime(order.createdAt)}</div>
+                            <div className="text-slate-400 font-medium" style={{ fontSize: '11px' }}>{formatOrderDate(order.createdAt)}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
-        </>
+
+          {deliveryFilter === 'past' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{ margin: '0 12px' }}>
+              <div className="bg-slate-50 border-b border-gray-200 flex items-center justify-between" style={{ padding: '14px 16px' }}>
+                <h2 className="font-bold text-slate-800 flex items-center gap-2" style={{ fontSize: '16px' }}>
+                  <svg style={{ width: '18px', height: '18px' }} className="text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  Past Deliveries
+                </h2>
+                <span className="font-bold text-slate-600 bg-white rounded-full border border-gray-200 shadow-sm" style={{ padding: '3px 10px', fontSize: '11px' }}>
+                  {deliveredOrdersPast.length} {deliveredOrdersPast.length === 1 ? 'Meal' : 'Meals'}
+                </span>
+              </div>
+              
+              {deliveredOrdersPast.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <p className="text-slate-500 font-medium" style={{ fontSize: '13px' }}>No past deliveries found.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto" style={{ padding: '0 16px 8px 16px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr className="border-b-2 border-slate-200 text-slate-400" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        <th style={{ padding: '12px 6px 10px 0' }}>User & Room</th>
+                        <th style={{ padding: '12px 6px 10px 6px' }}>Meal Items</th>
+                        <th style={{ padding: '12px 6px 10px 6px' }}>Order Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deliveredOrdersPast.map((order) => (
+                        <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td style={{ padding: '14px 6px 14px 0', verticalAlign: 'middle', minWidth: '100px' }}>
+                            <div className="font-bold text-slate-800" style={{ fontSize: '13px', marginBottom: '3px' }}>
+                              {order.userName || "Unknown"}
+                              {order.status === 'cancelled' && (
+                                <span className="ml-2 font-bold text-red-600 bg-red-100 rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>Cancelled</span>
+                              )}
+                              {order.status === 'delivered' && (
+                                <span className="ml-2 font-bold text-emerald-600 bg-emerald-100 rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>Delivered</span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <span className="font-semibold" style={{ fontSize: '10px', color: '#6366f1', background: '#eef2ff', borderRadius: '4px', padding: '2px 6px' }}>#{order.userNumericId || "—"}</span>
+                              <span className="font-bold text-slate-600 bg-slate-100 rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>Rm {order.roomNumber || "—"}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 6px', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {order.items?.map((item, idx) => (
+                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <p className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{item.quantity}x {item.name}</p>
+                                  <p className="font-medium text-slate-500" style={{ fontSize: '10px' }}>{formatMealDate(item.date)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 6px', verticalAlign: 'middle', minWidth: '70px' }}>
+                            <div className="font-bold text-slate-700" style={{ fontSize: '12px' }}>{formatOrderTime(order.createdAt)}</div>
+                            <div className="text-slate-400 font-medium" style={{ fontSize: '11px' }}>{formatOrderDate(order.createdAt)}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Quick Order Modal */}

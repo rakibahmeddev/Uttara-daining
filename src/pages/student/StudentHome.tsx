@@ -26,7 +26,7 @@ const TIME_SLOT_COLORS = {
 };
 
 export default function StudentHome() {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const navigate = useNavigate();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +106,7 @@ export default function StudentHome() {
     try {
       await placeOrder(
         currentUser.uid,
-        [{ id: meal.id, name: meal.name, price: meal.price, quantity }],
+        [{ id: meal.id, name: meal.name, price: meal.price, quantity, date: meal.date }],
         total,
       );
       alert(
@@ -145,7 +145,7 @@ export default function StudentHome() {
   }
 
   return (
-    <div className="w-full" style={{ width: '100%', margin: '0 auto', padding: '0 20px', paddingBottom: '60px' }}>
+    <div className="w-full min-h-[100vh] bg-white rounded-t-[32px] sm:rounded-[32px] shadow-sm" style={{ width: '100%', margin: '10px auto 0', padding: '24px 20px 60px' }}>
       {/* ── Delivery Duty Banner ── */}
       {currentUser?.assignedDeliveryDate === (() => {
           const now = new Date();
@@ -154,7 +154,7 @@ export default function StudentHome() {
         <div 
             className="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-2xl text-white shadow-lg animate-fade-in"
             style={{ 
-                margin: '24px 0', 
+                margin: '0 0 24px 0', 
                 padding: '24px 20px', 
                 display: 'flex', 
                 flexDirection: 'column', 
@@ -171,7 +171,7 @@ export default function StudentHome() {
             <p className="text-blue-100 font-medium" style={{ fontSize: '15px' }}>You are today's Delivery Rider!</p>
           </div>
           <button 
-            onClick={() => navigate('/student/rider-delivery')}
+            onClick={() => navigate(`/${userRole || 'student'}/rider-delivery`)}
             className="w-full bg-white text-indigo-600 hover:bg-blue-50 font-bold rounded-xl shadow-sm transition-all hover:shadow-md active:scale-95"
             style={{ padding: '14px 24px', fontSize: '16px', textAlign: 'center' }}
           >

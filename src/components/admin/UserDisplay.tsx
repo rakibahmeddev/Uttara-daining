@@ -31,26 +31,28 @@ export function CustomerName({ name, email, userNumericId }: {
     return (
         <span className="text-sm font-semibold text-slate-800">
             {displayName}
-            {userNumericId != null && (
-                <span className="text-slate-500 font-medium"> (UID: {userNumericId})</span>
-            )}
         </span>
     );
 }
 
-export function CustomerCell({ name, email, userNumericId }: {
+export function CustomerCell({ name, email, userNumericId, roomNumber }: {
     name?: string;
     email?: string;
     userNumericId?: number | null;
+    roomNumber?: string;
 }) {
     return (
         <div className="flex items-center gap-3 min-w-0">
-            <Avatar name={name} email={email} />
-            <div className="min-w-0">
+            <div className="min-w-0 flex flex-col">
                 <CustomerName name={name} email={email} userNumericId={userNumericId} />
-                {email && (
-                    <p className="text-[11px] text-slate-400 truncate mt-0.5">{email}</p>
-                )}
+                <div className="flex items-center gap-1.5 mt-0.5">
+                    {userNumericId != null && (
+                        <span className="font-semibold text-[#6366f1] bg-[#eef2ff] rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>#{userNumericId}</span>
+                    )}
+                    {roomNumber && (
+                        <span className="font-bold text-slate-600 bg-slate-100 rounded" style={{ fontSize: '10px', padding: '2px 6px' }}>Rm {roomNumber}</span>
+                    )}
+                </div>
             </div>
         </div>
     );

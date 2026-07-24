@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { getAllOrdersEnriched, updateOrderStatus } from "../../services/db";
 import { Button } from "../../components/ui/Button";
-import { formatDateBD } from "../../utils/date";
+import { formatDateBD, formatDateShortBD } from "../../utils/date";
 import { cn } from "../../utils/cn";
 import { CustomerCell, RoomNoCell } from "../../components/admin/UserDisplay";
 import type { Order } from "../../types";
 import { Search, Filter, X } from "lucide-react";
 
 const getSlot = (order: Order): string => {
-    const raw = (order as any).slot || (order as any).timeSlot || (order.items?.[0] as any)?.timeSlot || "";
+    const raw = (order as any).slot || (order as any).timeSlot || (order.items?.[0] as any)?.timeSlot || order.items?.[0]?.name || "";
     if (!raw) return "";
     const lower = raw.toLowerCase();
     if (lower.includes("break") || lower.includes("সকাল")) return "Breakfast";
@@ -47,14 +47,6 @@ export default function Orders() {
         }
     };
 
-    const slotOptions = useMemo(() => {
-        const slots = new Set<string>();
-        orders.forEach(o => {
-            const s = getSlot(o);
-            if (s && s !== "Unknown") slots.add(s);
-        });
-        return Array.from(slots).sort();
-    }, [orders]);
 
     const filteredOrders = useMemo(() => {
         return orders.filter(order => {
@@ -91,7 +83,6 @@ export default function Orders() {
 
     const tabs = [
         { id: "pending", label: "Pending" },
-        { id: "hold", label: "Hold" },
         { id: "delivered", label: "Delivered" },
         { id: "rejected", label: "Rejected" },
         { id: "all", label: "All Orders" },
@@ -164,10 +155,9 @@ export default function Orders() {
                             style={{ padding: "12px 36px 12px 42px", width: "100%" }}
                         >
                             <option value="all">All Slots</option>
-                            {slotOptions.map(s => (
-                                <option key={s} value={s}>{s}</option>
-                            ))}
-                            <option value="—">Unknown</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner">Dinner</option>
                         </select>
                     </div>
 
@@ -191,7 +181,6 @@ export default function Orders() {
                                 <th>Order #</th>
                                 <th>Date</th>
                                 <th>Customer</th>
-                                <th>Room No.</th>
                                 <th>Slot</th>
                                 <th>Items</th>
                                 <th>Total</th>
@@ -215,17 +204,15 @@ export default function Orders() {
                                             #{index + 1}
                                         </td>
                                         <td className="whitespace-nowrap text-sm text-slate-500">
-                                            {order.createdAt ? formatDateBD(order.createdAt) : "—"}
+                                            {order.createdAt ? formatDateShortBD(order.createdAt) : "—"}
                                         </td>
                                         <td className="whitespace-nowrap">
                                             <CustomerCell
                                                 name={order.userName}
                                                 email={order.userEmail}
                                                 userNumericId={order.userNumericId}
+                                                roomNumber={order.roomNumber}
                                             />
-                                        </td>
-                                        <td className="whitespace-nowrap">
-                                            <RoomNoCell roomNumber={order.roomNumber} />
                                         </td>
                                         <td className="whitespace-nowrap">
                                             {slot ? (
@@ -236,8 +223,25 @@ export default function Orders() {
                                                 <span className="text-slate-400 text-xs">—</span>
                                             )}
                                         </td>
-                                        <td className="text-sm text-slate-600 max-w-xs truncate">
-                                            {order.items.map(i => `${i.name} (${i.quantity})`).join(", ")}
+                                        <td className="text-sm text-slate-600 max-w-xs">
+                                            <div className="flex flex-col gap-1.5">
+                                                {order.items.map((i, idx) => {
+                                                    const rawDate = i.date || order.date;
+                                                    let dateStr = "";
+                                                    if (rawDate) {
+                                                        const d = new Date(rawDate);
+                                                        if (!isNaN(d.getTime())) {
+                                                            dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                                                        }
+                                                    }
+                                                    return (
+                                                        <div key={idx} className="flex flex-col">
+                                                            <span className="font-bold text-slate-700 text-[13px] leading-tight">{i.name} ({i.quantity})</span>
+                                                            {dateStr && <span className="text-[11px] text-slate-400 font-medium leading-tight mt-0.5">{dateStr}</span>}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </td>
                                         <td className="whitespace-nowrap text-sm font-extrabold text-slate-800">
                                             ৳{order.totalAmount?.toLocaleString()}
@@ -258,20 +262,10 @@ export default function Orders() {
                                                     <Button size="sm" onClick={() => handleStatusUpdate(order.id, 'delivered')} className="bg-green-600 hover:bg-green-700" style={{ padding: "2px 5px", fontSize: "11px", margin: "2px" }}>
                                                         Deliver
                                                     </Button>
-                                                    {order.status !== 'hold' && (
-                                                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={() => handleStatusUpdate(order.id, 'hold')} style={{ padding: "2px 5px", fontSize: "11px", margin: "2px" }}>
-                                                            Hold
-                                                        </Button>
-                                                    )}
                                                     <Button size="sm" variant="danger" onClick={() => handleStatusUpdate(order.id, 'rejected')} style={{ padding: "2px 5px", fontSize: "11px", margin: "2px" }}>
                                                         Reject
                                                     </Button>
                                                 </>
-                                            )}
-                                            {order.status === 'hold' && (
-                                                <Button size="sm" onClick={() => handleStatusUpdate(order.id, 'pending')} variant="outline" style={{ padding: "2px 5px", fontSize: "11px", margin: "2px" }}>
-                                                    Unhold
-                                                </Button>
                                             )}
                                             </div>
                                         </td>

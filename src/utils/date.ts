@@ -26,3 +26,21 @@ export const formatTimeBD = (date: any): string => {
         hour12: true
     }).format(d);
 };
+export const formatDateShortBD = (date: any): string => {
+    if (!date) return 'N/A';
+    const d = date.toDate ? date.toDate() : (date.seconds ? new Date(date.seconds * 1000) : new Date(date));
+    
+    const datePart = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dhaka',
+        month: 'short',
+        day: 'numeric'
+    }).format(d);
+    
+    const timePart = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dhaka',
+        timeStyle: 'short',
+        hour12: true
+    }).format(d);
+    
+    return `${datePart}, ${timePart}`;
+};
