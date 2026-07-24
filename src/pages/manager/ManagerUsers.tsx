@@ -183,13 +183,19 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
 
                 {/* User info */}
                 <div style={{ padding: "20px 24px 0", maxHeight: "65vh", overflowY: "auto" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px", backgroundColor: "#fff7ed", borderRadius: "12px", border: "1px solid #ffedd5", marginBottom: "20px" }}>
-                        <div style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: "18px", flexShrink: 0 }}>
-                            {(user.name || user.email || "?")[0].toUpperCase()}
+                    <div style={{ display: "flex", alignItems: "center", padding: "16px", backgroundColor: "#fff7ed", borderRadius: "12px", border: "1px solid #ffedd5", marginBottom: "20px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1 }}>
+                            <div style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: "18px", flexShrink: 0 }}>
+                                {(user.name || user.email || "?")[0].toUpperCase()}
+                            </div>
+                            <div>
+                                <p style={{ fontWeight: 700, fontSize: "15px", color: "#0f172a", margin: 0 }}>{user.name || "—"}</p>
+                                <p style={{ fontSize: "12px", color: "#64748b", margin: "3px 0 0" }}>ID: {user.userId || "—"} | Rm: {user.roomNumber || "—"}</p>
+                                <p style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 0" }}>{user.email}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p style={{ fontWeight: 700, fontSize: "15px", color: "#0f172a", margin: 0 }}>{user.name || "—"}</p>
-                            <p style={{ fontSize: "12px", color: "#64748b", margin: "3px 0 0" }}>ID: {user.userId || "—"} | Rm: {user.roomNumber || "—"}</p>
+                        <div style={{ backgroundColor: "#fff", border: "1px solid #fed7aa", padding: "8px 12px", borderRadius: "8px", textAlign: "right", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                            <span style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>৳{user.balance || 0}</span>
                         </div>
                     </div>
 
@@ -260,15 +266,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: UserDoc, onClose: () 
                                 style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
                             />
                         </div>
-                        <div>
-                            <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#475569", marginBottom: "8px" }}>Current Balance (৳)</label>
-                            <input
-                                type="number"
-                                value={balance}
-                                onChange={e => setBalance(Number(e.target.value))}
-                                style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "11px 14px", fontSize: "14px", outline: "none", boxSizing: "border-box" }}
-                            />
-                        </div>
+                        <div></div>
                     </div>
 
                     {/* Role */}
