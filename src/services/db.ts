@@ -105,9 +105,19 @@ export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = f
     let totalQuantity = 0;
     if (Array.isArray(items)) {
         totalQuantity = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+        
+        // Check per-meal max quantity in request
+        const mealCountsInRequest: Record<string, number> = {};
+        for (const item of items) {
+            const count = (mealCountsInRequest[item.id] || 0) + (Number(item.quantity) || 1);
+            if (count > 3) {
+                throw new Error("You can order a maximum of 3 portions per meal.");
+            }
+            mealCountsInRequest[item.id] = count;
+        }
     }
-    if (totalQuantity < 1 || totalQuantity > 3) {
-        throw new Error("You can order a maximum of 3 meals per request.");
+    if (totalQuantity < 1) {
+        throw new Error("Order must contain at least 1 meal.");
     }
 
     await runTransaction(db, async (transaction) => {
@@ -128,10 +138,18 @@ export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = f
         }
 
         const orderedMealsCount = userData.orderedMealsCount || {};
-        const alreadyOrderedCount = orderedMealsCount[targetDate] || 0;
 
-        if (alreadyOrderedCount + totalQuantity > 3) {
-            throw new Error(`You can order a maximum of 3 meals per day. You have already ordered ${alreadyOrderedCount} meals for ${targetDate}.`);
+        // Verify and update per-meal quantities
+        for (const item of items) {
+            const itemDate = item.date || targetDate;
+            const mealKey = `${itemDate}_${item.id}`;
+            const alreadyOrdered = orderedMealsCount[mealKey] || 0;
+            const qty = Number(item.quantity) || 1;
+            
+            if (alreadyOrdered + qty > 3) {
+                throw new Error(`You can order a maximum of 3 portions of ${item.name} per day. You have already ordered ${alreadyOrdered}.`);
+            }
+            orderedMealsCount[mealKey] = alreadyOrdered + qty;
         }
 
         const currentBalance = userData.balance || 0;
@@ -140,7 +158,6 @@ export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = f
         }
 
         const newBalance = currentBalance - totalAmount;
-        orderedMealsCount[targetDate] = alreadyOrderedCount + totalQuantity;
 
         transaction.update(userRef, { 
             balance: newBalance,

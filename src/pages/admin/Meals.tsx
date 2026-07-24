@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Trash2, Edit2, Upload, Image as ImageIcon, Utensils } from "lucide-react";
-import { getMeals, addMeal, deleteMeal, updateMeal } from "../../services/db";
+import { Plus, Trash2, Edit2, Upload, Image as ImageIcon, Utensils, BarChart2 } from "lucide-react";
+import { getMeals, addMeal, deleteMeal, updateMeal, getAllOrders } from "../../services/db";
 import { uploadImage } from "../../services/storage";
 import { Button } from "../../components/ui/Button";
 import { Input, Textarea, Select, FormField } from "../../components/ui/Input";
@@ -16,6 +16,11 @@ export default function Meals() {
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [editingMeal, setEditingMeal] = useState(null);
+
+    // Stats State
+    const [selectedMealStats, setSelectedMealStats] = useState(null);
+    const [statsLoading, setStatsLoading] = useState(false);
+    const [mealStats, setMealStats] = useState({ breakfast: 0, lunch: 0, dinner: 0, total: 0 });
 
     // Form State
     const [name, setName] = useState("");
@@ -39,6 +44,61 @@ export default function Meals() {
     const fetchMeals = async () => {
         const data = await getMeals();
         setMeals(data);
+    };
+
+    const handleMealClick = async (meal) => {
+        if (!meal.date) {
+            alert("This meal doesn't have a specific date set.");
+            return;
+        }
+        setSelectedMealStats(meal);
+        setStatsLoading(true);
+        try {
+            const allOrders = await getAllOrders();
+            let b = 0, l = 0, d = 0, t = 0;
+            
+            const mealSlot = (meal.timeSlot || "").toLowerCase();
+
+            allOrders.forEach(order => {
+                const status = order.status || 'pending';
+                if (status !== 'pending') return;
+                
+                if (order.items && Array.isArray(order.items)) {
+                    order.items.forEach(item => {
+                        if (item.date === meal.date) {
+                            const qty = Number(item.quantity) || 1;
+                            const lowerName = (item.name || "").toLowerCase();
+                            const itemSlot = (item.timeSlot || order.slot || order.timeSlot || "").toLowerCase();
+                            
+                            let isMatch = false;
+
+                            if (mealSlot === 'breakfast' && (lowerName.includes("break") || lowerName.includes("সকাল") || itemSlot.includes("break"))) {
+                                b += qty;
+                                isMatch = true;
+                            } else if (mealSlot === 'lunch' && (lowerName.includes("lunch") || lowerName.includes("দুপুর") || itemSlot.includes("lunch"))) {
+                                l += qty;
+                                isMatch = true;
+                            } else if (mealSlot === 'dinner' && (lowerName.includes("dinner") || lowerName.includes("রাত") || lowerName.includes("সন্ধ্যা") || itemSlot.includes("dinner"))) {
+                                d += qty;
+                                isMatch = true;
+                            } else if (!mealSlot && item.name === meal.name) {
+                                isMatch = true; // Fallback if no specific slot is defined but name matches
+                            }
+
+                            if (isMatch) {
+                                t += qty;
+                            }
+                        }
+                    });
+                }
+            });
+
+            setMealStats({ breakfast: b, lunch: l, dinner: d, total: t });
+        } catch (err) {
+            console.error("Error fetching stats:", err);
+        } finally {
+            setStatsLoading(false);
+        }
     };
 
     const resetForm = () => {
@@ -189,7 +249,7 @@ export default function Meals() {
                                     </td>
                                 </tr>
                             ) : filteredMeals.map((meal, idx) => (
-                                <tr key={meal.id}>
+                                <tr key={meal.id} onClick={() => handleMealClick(meal)} className="cursor-pointer hover:bg-slate-50 transition-colors">
                                     <td className="whitespace-nowrap text-sm font-bold font-mono text-violet-400">
                                         #{idx + 1}
                                     </td>
@@ -223,7 +283,7 @@ export default function Meals() {
                                             {meal.available ? 'Available' : 'Unavailable'}
                                         </span>
                                     </td>
-                                    <td className="whitespace-nowrap text-right text-sm font-semibold">
+                                    <td className="whitespace-nowrap text-right text-sm font-semibold" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-end gap-[2px]">
                                         <Button
                                             size="sm"
@@ -388,6 +448,48 @@ export default function Meals() {
                         Cancel
                     </Button>
                 </div>
+            </Modal>
+
+            {/* Meal Stats Modal */}
+            <Modal
+                isOpen={selectedMealStats !== null}
+                onClose={() => setSelectedMealStats(null)}
+                title="Order Stats"
+                size="sm"
+                variant="light"
+            >
+                {selectedMealStats && (
+                    <div className="p-4 bg-white rounded-xl">
+                        <div className="flex items-center gap-3 mb-4 border-b pb-4 border-slate-100">
+                            <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                                <BarChart2 size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800 text-lg">{selectedMealStats.name}</h3>
+                                <p className="text-sm text-slate-500">Date: {selectedMealStats.date}</p>
+                            </div>
+                        </div>
+
+                        {statsLoading ? (
+                            <div className="text-center py-6 text-slate-500 animate-pulse">
+                                Calculating stats...
+                            </div>
+                        ) : (
+                            <div style={{ padding: '0 16px' }}>
+                                <div className="bg-orange-50 p-6 rounded-xl border border-orange-200 shadow-sm text-center">
+                                    <div className="text-sm font-bold text-orange-400 uppercase mb-2">Total Orders</div>
+                                    <div className="text-5xl font-black text-orange-600">{mealStats.total}</div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="mt-6" style={{ padding: '0 16px' }}>
+                            <Button className="w-full" onClick={() => setSelectedMealStats(null)}>
+                                Close
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </DashboardPage>
     );

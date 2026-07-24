@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAllOrdersEnriched, updateOrderStatus } from "../../services/db";
+import { getAllOrdersEnriched, updateOrderStatus, getMeals } from "../../services/db";
 import { Button } from "../../components/ui/Button";
-import { formatDateBD, formatDateShortBD } from "../../utils/date";
+import { formatDateBD, formatDateShortBD, formatDateOnlyBD } from "../../utils/date";
 import { cn } from "../../utils/cn";
 import { CustomerCell, RoomNoCell } from "../../components/admin/UserDisplay";
 import type { Order } from "../../types";
-import { Search, Filter, X, Trash2, RefreshCw } from "lucide-react";
+import { Search, Filter, X, Trash2, RefreshCw, Utensils } from "lucide-react";
 import { doc, deleteDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 
@@ -21,23 +21,29 @@ const getSlot = (order: Order): string => {
 
 export default function Orders() {
     const [orders, setOrders] = useState<Order[]>([]);
+    const [meals, setMeals] = useState<any[]>([]);
     const [filter, setFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [slotFilter, setSlotFilter] = useState("all");
+    const [mealFilter, setMealFilter] = useState("all");
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     useEffect(() => {
-        fetchOrders();
+        fetchData();
     }, []);
 
-    const fetchOrders = async () => {
+    const fetchData = async () => {
         setLoading(true);
         try {
-            const data = await getAllOrdersEnriched();
-            setOrders(data);
+            const [ordersData, mealsData] = await Promise.all([
+                getAllOrdersEnriched(),
+                getMeals()
+            ]);
+            setOrders(ordersData);
+            setMeals(mealsData);
         } catch (error) {
-            console.error("Error fetching orders:", error);
+            console.error("Error fetching data:", error);
         } finally {
             setLoading(false);
         }
@@ -57,13 +63,33 @@ export default function Orders() {
             const deletePromises = selectedIds.map(id => deleteDoc(doc(db, "orders", id)));
             await Promise.all(deletePromises);
             alert(`✅ Successfully deleted ${selectedIds.length} order(s).`);
-            setSelectedIds([]); // Clear selection after successful deletion
-            fetchOrders(); // Refresh the list
+            setSelectedIds([]);
+            fetchData();
         } catch (error: any) {
-            console.error("Bulk delete error:", error);
-            alert("❌ Failed to delete orders: " + error.message);
-        } finally {
+            console.error("Error deleting orders:", error);
+            alert("❌ Failed to delete some orders.");
             setLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+        try {
+            await updateOrderStatus(orderId, newStatus);
+            setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("Failed to update status. Please try again.");
+        }
+    };
+
+    const handleDelete = async (orderId: string) => {
+        if (!window.confirm("Are you sure you want to delete this order?")) return;
+        try {
+            await deleteDoc(doc(db, "orders", orderId));
+            setOrders(orders.filter(order => order.id !== orderId));
+        } catch (error) {
+            console.error("Error deleting order:", error);
+            alert("Failed to delete order. Please try again.");
         }
     };
 
@@ -84,10 +110,9 @@ export default function Orders() {
     const handleStatusUpdate = async (orderId: string, status: string) => {
         if (confirm(`Mark order as ${status}?`)) {
             await updateOrderStatus(orderId, status);
-            fetchOrders();
+            fetchData();
         }
     };
-
 
     const filteredOrders = useMemo(() => {
         return orders.filter(order => {
@@ -102,6 +127,12 @@ export default function Orders() {
             if (slotFilter !== 'all') {
                 const s = getSlot(order) || "—";
                 if (s !== slotFilter) return false;
+            }
+
+            // Meal filter
+            if (mealFilter !== 'all') {
+                const hasMeal = order.items && Array.isArray(order.items) && order.items.some(item => item.name === mealFilter);
+                if (!hasMeal) return false;
             }
 
             // Search query filter
@@ -120,24 +151,80 @@ export default function Orders() {
 
             return true;
         });
-    }, [orders, filter, searchQuery, slotFilter]);
+    }, [orders, filter, searchQuery, slotFilter, mealFilter]);
 
-    const pendingCount = orders.filter(o => o.status === 'pending' || !o.status).length;
-    const deliveredCount = orders.filter(o => o.status === 'delivered' || o.status === 'completed').length;
-    const allCount = orders.length;
+    const pendingCount = orders.reduce((total, o) => {
+        if (o.status === 'pending' || !o.status) {
+            return total + (o.items && Array.isArray(o.items) ? o.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) : 1);
+        }
+        return total;
+    }, 0);
 
-    const pendingSlotCounts = useMemo(() => {
+    const deliveredCount = orders.reduce((total, o) => {
+        if (o.status === 'delivered' || o.status === 'completed') {
+            return total + (o.items && Array.isArray(o.items) ? o.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) : 1);
+        }
+        return total;
+    }, 0);
+
+    const allCount = orders.reduce((total, o) => {
+        return total + (o.items && Array.isArray(o.items) ? o.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) : 1);
+    }, 0);
+
+    const slotCounts = useMemo(() => {
         const counts = { Breakfast: 0, Lunch: 0, Dinner: 0 };
         orders.forEach(order => {
-            if (order.status === 'pending' || !order.status) {
+            const status = order.status || 'pending';
+            const matchesFilter = filter === 'all' 
+                ? true 
+                : filter === 'delivered' 
+                    ? (status === 'delivered' || status === 'completed')
+                    : status === filter;
+
+            if (matchesFilter) {
                 const s = getSlot(order);
-                if (s === 'Breakfast') counts.Breakfast++;
-                if (s === 'Lunch') counts.Lunch++;
-                if (s === 'Dinner') counts.Dinner++;
+                // Calculate total quantity for this order
+                let qty = 1;
+                if (order.items && Array.isArray(order.items)) {
+                    qty = order.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+                }
+
+                if (s === 'Breakfast') counts.Breakfast += qty;
+                if (s === 'Lunch') counts.Lunch += qty;
+                if (s === 'Dinner') counts.Dinner += qty;
             }
         });
         return counts;
-    }, [orders]);
+    }, [orders, filter]);
+
+    const availableMeals = useMemo(() => {
+        return [...meals].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [meals]);
+
+    const mealCounts = useMemo(() => {
+        const counts: Record<string, number> = {};
+        availableMeals.forEach(m => { counts[m.id] = 0; });
+
+        orders.forEach(order => {
+            const status = order.status || 'pending';
+            const matchesFilter = filter === 'all' 
+                ? true 
+                : filter === 'delivered' 
+                    ? (status === 'delivered' || status === 'completed')
+                    : status === filter;
+
+            if (matchesFilter && order.items && Array.isArray(order.items)) {
+                order.items.forEach(item => {
+                    availableMeals.forEach(m => {
+                        if (item.name === m.name && item.date === m.date) {
+                            counts[m.id] += (Number(item.quantity) || 1);
+                        }
+                    });
+                });
+            }
+        });
+        return counts;
+    }, [orders, filter, availableMeals]);
 
     const tabs = [
         { id: "pending", label: "Pending", count: pendingCount },
@@ -153,7 +240,7 @@ export default function Orders() {
         );
     }
 
-    const hasFilters = searchQuery || slotFilter !== "all";
+    const hasFilters = searchQuery || slotFilter !== "all" || mealFilter !== "all";
 
     return (
         <div className="animate-fade-in-up manage-Orders-admin">
@@ -176,7 +263,7 @@ export default function Orders() {
                             )}
                         </Button>
                     ) : (
-                        <Button onClick={fetchOrders} variant="outline" size="sm" style={{ padding: "4px 8px" }}>
+                        <Button onClick={fetchData} variant="outline" size="sm" style={{ padding: "4px 8px" }}>
                             <RefreshCw size={14} className="mr-1.5 inline" />
                             Refresh
                         </Button>
@@ -185,6 +272,20 @@ export default function Orders() {
             </div>
 
             <div className="flex flex-col gap-4 mb-6">
+                {/* 1. Search Bar */}
+                <div className="relative w-full">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Search name, ID, room..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                        style={{ padding: "12px 16px 12px 42px", width: "100%" }}
+                    />
+                </div>
+
+                {/* 2. Tabs */}
                 <div className="flex flex-wrap gap-1 rounded-xl bg-slate-50 border border-slate-100 p-1 w-full max-w-full">
                     {tabs.map((tab) => (
                         <button
@@ -225,37 +326,43 @@ export default function Orders() {
                     ))}
                 </div>
 
+                {/* 3. Filters & Clear */}
                 <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-                    <div className="relative w-full">
-                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder="Search name, ID, room..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50"
-                            style={{ padding: "12px 16px 12px 42px", width: "100%" }}
-                        />
-                    </div>
-                    
                     <div className="relative w-full sm:w-auto min-w-[160px]">
                         <Filter size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                         <select
                             value={slotFilter}
-                            onChange={(e) => setSlotFilter(e.target.value)}
+                            onChange={(e) => { setSlotFilter(e.target.value); setMealFilter("all"); }}
                             className="appearance-none bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 cursor-pointer text-slate-700 font-medium"
                             style={{ padding: "12px 36px 12px 42px", width: "100%" }}
                         >
                             <option value="all">All Slots</option>
-                            <option value="Breakfast">Breakfast {filter === 'pending' ? `(${pendingSlotCounts.Breakfast})` : ''}</option>
-                            <option value="Lunch">Lunch {filter === 'pending' ? `(${pendingSlotCounts.Lunch})` : ''}</option>
-                            <option value="Dinner">Dinner {filter === 'pending' ? `(${pendingSlotCounts.Dinner})` : ''}</option>
+                            <option value="Breakfast">Breakfast ({slotCounts.Breakfast})</option>
+                            <option value="Lunch">Lunch ({slotCounts.Lunch})</option>
+                            <option value="Dinner">Dinner ({slotCounts.Dinner})</option>
+                        </select>
+                    </div>
+
+                    <div className="relative w-full sm:w-auto min-w-[180px] flex-1">
+                        <Utensils size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <select
+                            value={mealFilter}
+                            onChange={(e) => { setMealFilter(e.target.value); setSlotFilter("all"); }}
+                            className="appearance-none bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 cursor-pointer text-slate-700 font-medium"
+                            style={{ padding: "12px 36px 12px 42px", width: "100%", textOverflow: "ellipsis" }}
+                        >
+                            <option value="all">Available Meals</option>
+                            {availableMeals.map(m => (
+                                <option key={m.id} value={m.name}>
+                                    {m.name}, {formatDateOnlyBD(m.date)} (Order={mealCounts[m.id] || 0})
+                                </option>
+                            ))}
                         </select>
                     </div>
 
                     {hasFilters && (
                         <button
-                            onClick={() => { setSearchQuery(""); setSlotFilter("all"); }}
+                            onClick={() => { setSearchQuery(""); setSlotFilter("all"); setMealFilter("all"); }}
                             className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             title="Clear filters"
                         >
