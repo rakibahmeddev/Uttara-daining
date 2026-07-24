@@ -130,8 +130,14 @@ export default function StudentHome() {
     try {
       await placeOrder(
         currentUser.uid,
-        [{ id: meal.id, name: meal.name, price: meal.price, quantity, date: meal.date }],
-        total,
+        [{ 
+          id: meal.id, 
+          name: meal.name, 
+          price: Number(meal.price) || 0, 
+          quantity: Number(quantity) || 1, 
+          date: meal.date 
+        }],
+        Number(total) || 0,
       );
       alert(
         `✅ Order placed successfully!\n৳${total} deducted from your balance.`,

@@ -24,7 +24,12 @@ export default function Cart() {
 
         setLoading(true);
         try {
-            await placeOrder(currentUser.uid, cart, cartTotal);
+            const sanitizedCart = cart.map(item => ({
+                ...item,
+                price: Number(item.price) || 0,
+                quantity: Number(item.quantity) || 1
+            }));
+            await placeOrder(currentUser.uid, sanitizedCart, Number(cartTotal) || 0);
             clearCart();
             alert("Order placed successfully!");
             navigate("/student");

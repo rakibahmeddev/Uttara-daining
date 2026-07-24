@@ -82,7 +82,26 @@ export const updateUserBalance = async (userId, amount, description) => {
 };
 
 // --- Orders ---
-export const placeOrder = async (userId, items, totalAmount) => {
+export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = false) => {
+    if (!bypassTimeCheck) {
+        const now = new Date();
+        const bdFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Dhaka',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: false
+        });
+        const formatted = bdFormatter.format(now);
+        const [hourStr, minStr] = formatted.split(':');
+        let bdHour = parseInt(hourStr, 10);
+        const bdMinute = parseInt(minStr, 10);
+        if (bdHour === 24) bdHour = 0;
+
+        if (bdHour < 21 || (bdHour === 23 && bdMinute > 0) || bdHour > 23) {
+            throw new Error("Orders can only be placed between 9:00 PM and 11:00 PM (BD Time).");
+        }
+    }
+
     await runTransaction(db, async (transaction) => {
         const userRef = doc(db, "users", userId);
         const userDoc = await transaction.get(userRef);

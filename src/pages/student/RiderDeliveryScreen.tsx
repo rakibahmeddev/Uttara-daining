@@ -211,8 +211,8 @@ export default function RiderDeliveryScreen() {
     setAddingOrder(true);
     try {
       if (paymentMethod === 'balance') {
-        // Deduct from balance via transaction
-        await placeOrder(user.id, [{ name: meal.name, price: meal.price, quantity: qty, date: meal.date }], totalAmount);
+        // Deduct from balance via transaction (bypassing time limits for admins/managers)
+        await placeOrder(user.id, [{ id: meal.id, name: meal.name, price: meal.price, quantity: qty, date: meal.date }], totalAmount, true);
         alert(`✅ Order placed for ${user.name}! ৳${totalAmount} deducted from balance.`);
       } else {
         // Cash payment — just record the order, no deduction
