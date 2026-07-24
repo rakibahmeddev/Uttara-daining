@@ -117,19 +117,55 @@ export default function BalanceRequests() {
         }
     };
 
+    const handleTestAddBalance = async () => {
+        const amount = prompt("Enter amount to add to EVERY user (Testing Only):");
+        if (!amount || isNaN(Number(amount))) return;
+        if (!confirm(`Are you sure you want to add ৳${amount} to EVERY user? This is a temporary testing feature.`)) return;
+        setProcessing(true);
+        try {
+            const batch = writeBatch(db);
+            let count = 0;
+            users.forEach(u => {
+                if (!u.id) return;
+                const userRef = doc(db, "users", u.id);
+                batch.update(userRef, { balance: (u.balance || 0) + Number(amount) });
+                count++;
+            });
+            await batch.commit();
+            alert(`Successfully added ৳${amount} to ${count} users!`);
+        } catch (error) {
+            console.error(error);
+            alert("Failed to add balance to all users.");
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     const filters = ["topup", "withdraw"] as const;
 
     return (
         <DashboardPage 
             title="Balance" 
             subtitle="Review student top-ups, withdrawals, and balance changes"
-            action={<Button 
-                onClick={() => setManageModalOpen(true)} 
-                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/20 border-0"
-                style={{ padding: "8px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: 700 }}
-            >
-                Manage Balance
-            </Button>}
+            action={
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button 
+                        onClick={handleTestAddBalance} 
+                        disabled={processing}
+                        className="bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20 border-0"
+                        style={{ padding: "8px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: 700 }}
+                    >
+                        {processing ? "Adding..." : "All Balance (Test)"}
+                    </Button>
+                    <Button 
+                        onClick={() => setManageModalOpen(true)} 
+                        className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/20 border-0"
+                        style={{ padding: "8px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: 700 }}
+                    >
+                        Manage Balance
+                    </Button>
+                </div>
+            }
         >
             <div className="flex flex-wrap gap-2" style={{ marginTop: "5px", marginBottom: "10px" }}>
                 {filters.map((status) => (
