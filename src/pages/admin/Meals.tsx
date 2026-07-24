@@ -325,7 +325,7 @@ export default function Meals() {
                             style={{ width: '18px', height: '18px', accentColor: '#f97316', cursor: 'pointer' }}
                         />
                         <label htmlFor="timeRestrictToggle" style={{ fontSize: "14px", fontWeight: 600, color: "rgba(255,255,255,0.9)", cursor: "pointer" }}>
-                            Restrict Order Time (8:00 PM - 11:00 PM)
+                            Restrict Order Time (9:00 PM - 11:00 PM)
                         </label>
                     </div>
 
@@ -341,7 +341,7 @@ export default function Meals() {
                                 <div style={{ background: 'rgba(249,115,22,0.15)', padding: '10px 14px', borderRadius: '10px', marginBottom: '16px', border: '1px solid rgba(249,115,22,0.3)' }}>
                                     <p style={{ fontSize: '13px', color: '#fcd34d', margin: 0, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                        Students can order this meal on <b>{day}/{month}/{year}</b> (8:00 PM - 11:00 PM)
+                                        Students can order this meal on <b>{day}/{month}/{year}</b> (9:00 PM - 11:00 PM)
                                     </p>
                                 </div>
                             );

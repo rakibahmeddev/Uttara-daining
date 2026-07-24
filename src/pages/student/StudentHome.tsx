@@ -42,7 +42,7 @@ export default function StudentHome() {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
-  const isWithinOrderWindow = (currentHour >= 20 && currentHour < 23) || (currentHour === 23 && currentMinute === 0);
+  const isWithinOrderWindow = (currentHour >= 21 && currentHour < 23) || (currentHour === 23 && currentMinute === 0);
 
 
   useEffect(() => {
@@ -57,7 +57,21 @@ export default function StudentHome() {
         id: doc.id,
         ...doc.data(),
       })) as Meal[];
-      const availableMeals = mealsData.filter((meal) => meal.available);
+      
+      const nowTime = new Date();
+      const currentH = nowTime.getHours();
+      const targetDateObj = new Date(nowTime);
+      if (currentH >= 13) {
+        targetDateObj.setDate(targetDateObj.getDate() + 1);
+      }
+      const yyyy = targetDateObj.getFullYear();
+      const mm = String(targetDateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(targetDateObj.getDate()).padStart(2, '0');
+      const computedDateStr = `${yyyy}-${mm}-${dd}`;
+
+      const availableMeals = mealsData
+        .filter((meal) => meal.available)
+        .map((meal) => ({ ...meal, date: computedDateStr }));
       setMeals(availableMeals);
       const initialQuantities = {};
       availableMeals.forEach((meal) => {
@@ -85,7 +99,7 @@ export default function StudentHome() {
     }
     const isRestricted = meal.isTimeRestricted !== false;
     if (isRestricted && !isWithinOrderWindow) {
-      alert('Orders can only be placed between 8:00 PM and 11:00 PM.');
+      alert('Orders can only be placed between 9:00 PM and 11:00 PM.');
       return;
     }
     const quantity = quantities[meal.id] || 1;
@@ -287,7 +301,11 @@ export default function StudentHome() {
                     {meal.date && (
                       <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
                         <Calendar size={14} className="text-blue-500 drop-shadow-sm" />
-                        <span>{meal.date}</span>
+                        <span>{(() => {
+                          const [y, m, d] = meal.date.split('-');
+                          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          return `${d} ${months[parseInt(m, 10) - 1]} ${y}`;
+                        })()}</span>
                       </div>
                     )}
                     <div className="text-[13px] font-bold text-slate-700 flex items-center gap-1">
@@ -329,7 +347,7 @@ export default function StudentHome() {
                   )}
                   {!mealCanBeOrdered && (
                     <p className="text-[10px] text-orange-400 text-center font-semibold">
-                      Ordering is only open 8:00 PM - 11:00 PM
+                      Ordering is only open 9:00 PM - 11:00 PM
                     </p>
                   )}
 
