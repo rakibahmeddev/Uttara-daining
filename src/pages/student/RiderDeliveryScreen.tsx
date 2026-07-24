@@ -519,6 +519,14 @@ export default function RiderDeliveryScreen() {
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '5px' }}>
                 Select User <span className="text-red-500">*</span>
               </label>
+              <input
+                type="text"
+                placeholder="Search by name, ID or room..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                className="w-full border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-orange-400 bg-white"
+                style={{ padding: '8px 12px', fontSize: '13px', marginBottom: '8px' }}
+              />
               <select
                 className="w-full border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-orange-400 bg-white"
                 style={{ padding: '10px 12px', fontSize: '13px', appearance: 'auto' }}
@@ -529,9 +537,14 @@ export default function RiderDeliveryScreen() {
                 }}
               >
                 <option value="">— Choose a user —</option>
-                {allUsers.map((user) => (
+                {allUsers.filter(u => 
+                  !userSearch || 
+                  u.name?.toLowerCase().includes(userSearch.toLowerCase()) || 
+                  u.userId?.toString().includes(userSearch) || 
+                  u.roomNumber?.toString().toLowerCase().includes(userSearch.toLowerCase())
+                ).map((user) => (
                   <option key={user.id} value={user.id}>
-                    #{user.userId || '—'} · {user.name} (৳{user.balance || 0})
+                    #{user.userId || '—'} · {user.name} {user.roomNumber ? `(Room ${user.roomNumber}) ` : ''}(৳{user.balance || 0})
                   </option>
                 ))}
               </select>
@@ -551,7 +564,7 @@ export default function RiderDeliveryScreen() {
                 <option value="">— Choose a meal —</option>
                 {todayMeals.map((meal) => (
                   <option key={meal.id} value={meal.id}>
-                    {meal.name} — ৳{meal.price} {meal.timeSlot ? `(${meal.timeSlot})` : ''}
+                    {meal.name} — ৳{meal.price} {meal.date ? `(${new Date(meal.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})` : ''} {meal.timeSlot ? `[${meal.timeSlot}]` : ''}
                   </option>
                 ))}
               </select>
