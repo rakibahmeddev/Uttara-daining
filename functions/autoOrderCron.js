@@ -1,8 +1,6 @@
 const admin = require("firebase-admin");
 
 // Initialize Firebase Admin
-// This requires the FIREBASE_SERVICE_ACCOUNT environment variable to be set
-// with the JSON content of a service account key.
 const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT;
 if (!serviceAccountKey) {
   console.error("FATAL ERROR: FIREBASE_SERVICE_ACCOUNT environment variable is not set.");
@@ -40,19 +38,15 @@ function normalizeSlot(slot) {
 async function processAutoOrders() {
   console.log(`[AutoOrder] Starting execution at ${new Date().toISOString()}`);
 
-  // Calculate today's date boundaries in Bangladesh time (UTC+6)
+  // Calculate today's date string in Bangladesh time (UTC+6)
   const now = new Date();
   const bdOffset = 6 * 60 * 60 * 1000; // UTC+6 in ms
   const bdNow = new Date(now.getTime() + bdOffset);
   const bdDateStr = bdNow.toISOString().slice(0, 10); // e.g. "2025-07-25"
-  const todayStartUTC = new Date(bdNow.toISOString().slice(0, 10) + 'T00:00:00+06:00');
-  const todayEndUTC   = new Date(bdNow.toISOString().slice(0, 10) + 'T23:59:59+06:00');
   console.log(`[AutoOrder] Processing for BD date: ${bdDateStr}`);
 
   try {
-    // 1. Get today's/tomorrow's meals
-    // In our system, the auto order runs at 9 PM for the next day's meals.
-    // Let's get all available meals to check against user selections.
+    // 1. Fetch all available meals
     const mealsSnapshot = await db.collection("meals").where("available", "==", true).get();
     const availableMeals = new Map();
     mealsSnapshot.forEach((doc) => {
@@ -63,74 +57,68 @@ async function processAutoOrders() {
       console.log("[AutoOrder] No available meals found. Exiting.");
       return;
     }
-    
-    console.log(`[AutoOrder] Found ${availableMeals.size} available meals in the system.`);
+    console.log(`[AutoOrder] Found ${availableMeals.size} available meals.`);
 
-    // 2. Get users with autoOrderEnabled
+    // 2. Get users with autoOrderEnabled == true
     const usersSnapshot = await db.collection("users").where("autoOrderEnabled", "==", true).get();
-    
+
     if (usersSnapshot.empty) {
       console.log("[AutoOrder] No users have auto order enabled. Exiting.");
       return;
     }
-
     console.log(`[AutoOrder] Found ${usersSnapshot.size} users with auto order enabled.`);
 
     // 3. Process each user
     let successCount = 0;
     let failedCount = 0;
     let turnedOffCount = 0;
+    let skippedCount = 0;
 
     for (const userDoc of usersSnapshot.docs) {
       const userData = userDoc.data();
       const userId = userDoc.id;
 
-      // ── Duplicate guard: skip if already auto-ordered today ──
-      const existingOrdersSnap = await db.collection("orders")
-        .where("userId", "==", userId)
-        .where("orderType", "==", "auto")
-        .where("createdAt", ">=", admin.firestore.Timestamp.fromDate(todayStartUTC))
-        .where("createdAt", "<=", admin.firestore.Timestamp.fromDate(todayEndUTC))
-        .limit(1)
-        .get();
-      
-      if (!existingOrdersSnap.empty) {
-        console.log(`[AutoOrder] User ${userId} (${userData.name}) already has an auto order today. Skipping.`);
+      // ── Duplicate guard (no index needed) ──
+      // We store lastAutoOrderDate on the user document after a successful order.
+      // If it already equals today's date string, skip this user entirely.
+      if (userData.lastAutoOrderDate === bdDateStr) {
+        console.log(`[AutoOrder] User ${userId} (${userData.name}) already auto-ordered today. Skipping.`);
+        skippedCount++;
         continue;
       }
-      
-      const mealIds = userData.autoOrderMealIds || [];
+
+      // Resolve which meal IDs to order
+      const mealIds = [...(userData.autoOrderMealIds || [])];
       if (mealIds.length === 0) {
-        // Fallback for legacy users who only had autoOrderLunch or autoOrderDinner
+        // Legacy fallback: autoOrderLunch / autoOrderDinner booleans
         if (userData.autoOrderLunch) {
-          const lunchMeal = Array.from(availableMeals.values()).find(m => normalizeSlot(m.timeSlot) === 'Lunch');
-          if (lunchMeal) mealIds.push(lunchMeal.id);
+          const m = Array.from(availableMeals.values()).find(m => normalizeSlot(m.timeSlot) === "Lunch");
+          if (m) mealIds.push(m.id);
         }
         if (userData.autoOrderDinner) {
-          const dinnerMeal = Array.from(availableMeals.values()).find(m => normalizeSlot(m.timeSlot) === 'Dinner');
-          if (dinnerMeal) mealIds.push(dinnerMeal.id);
+          const m = Array.from(availableMeals.values()).find(m => normalizeSlot(m.timeSlot) === "Dinner");
+          if (m) mealIds.push(m.id);
         }
       }
 
       if (mealIds.length === 0) {
         console.log(`[AutoOrder] User ${userId} has auto-order enabled but no meals selected. Skipping.`);
+        skippedCount++;
         continue;
       }
 
-      // Filter to only meals that are actually available
-      const selectedMeals = [];
-      for (const mId of mealIds) {
-        if (availableMeals.has(mId)) {
-          selectedMeals.push(availableMeals.get(mId));
-        }
-      }
+      // Filter to meals that are actually available right now
+      const selectedMeals = mealIds
+        .filter(id => availableMeals.has(id))
+        .map(id => availableMeals.get(id));
 
       if (selectedMeals.length === 0) {
         console.log(`[AutoOrder] User ${userId}'s selected meals are not currently available. Skipping.`);
+        skippedCount++;
         continue;
       }
 
-      // Calculate cost
+      // Build order items and total cost (quantity always 1)
       let totalCost = 0;
       const orderItems = [];
       for (const meal of selectedMeals) {
@@ -139,7 +127,7 @@ async function processAutoOrders() {
           id: meal.id,
           name: meal.name,
           price: meal.price,
-          quantity: 1, // hardcoded to 1 for auto order
+          quantity: 1,
           date: meal.date,
           timeSlot: meal.timeSlot || ""
         });
@@ -147,18 +135,19 @@ async function processAutoOrders() {
 
       const currentBalance = userData.balance || 0;
 
+      // ── Insufficient balance: turn off auto order ──
       if (currentBalance < totalCost) {
-        console.log(`[AutoOrder] User ${userId} (${userData.name}) has insufficient balance. Cost: ৳${totalCost}, Balance: ৳${currentBalance}. Turning off auto-order.`);
+        console.log(`[AutoOrder] User ${userId} (${userData.name}) insufficient balance. Cost: ৳${totalCost}, Balance: ৳${currentBalance}. Turning off.`);
         try {
           await userDoc.ref.update({ autoOrderEnabled: false });
           turnedOffCount++;
         } catch (err) {
-          console.error(`[AutoOrder] Failed to turn off auto order for user ${userId}`, err);
+          console.error(`[AutoOrder] Failed to turn off auto order for ${userId}:`, err.message);
         }
         continue;
       }
 
-      // We have sufficient balance. Run a transaction to safely deduct and create order.
+      // ── Place order via Firestore transaction ──
       try {
         await db.runTransaction(async (transaction) => {
           const freshUserSnap = await transaction.get(userDoc.ref);
@@ -169,29 +158,30 @@ async function processAutoOrders() {
             throw new Error(`Insufficient balance during transaction for ${userId}`);
           }
 
-          // Deduct balance
           const newBalance = freshBalance - totalCost;
-          
-          // Update ordered meals count (max 3 portions rule)
-          const orderedMealsCount = freshUserData.orderedMealsCount || {};
+
+          // Enforce per-meal 3-portion limit
+          const orderedMealsCount = { ...(freshUserData.orderedMealsCount || {}) };
           for (const item of orderItems) {
-            const mealKey = `${item.date}_${item.id}`;
-            const alreadyOrdered = orderedMealsCount[mealKey] || 0;
-            if (alreadyOrdered + item.quantity > 3) {
-              throw new Error(`Meal portion limit exceeded for ${item.name}`);
+            const key = `${item.date}_${item.id}`;
+            const already = orderedMealsCount[key] || 0;
+            if (already + 1 > 3) {
+              throw new Error(`Portion limit exceeded for ${item.name}`);
             }
-            orderedMealsCount[mealKey] = alreadyOrdered + item.quantity;
+            orderedMealsCount[key] = already + 1;
           }
 
-          transaction.update(userDoc.ref, { 
+          // Update user: deduct balance, update meal counts, record lastAutoOrderDate
+          transaction.update(userDoc.ref, {
             balance: newBalance,
-            orderedMealsCount: orderedMealsCount
+            orderedMealsCount,
+            lastAutoOrderDate: bdDateStr   // ← duplicate guard key
           });
 
-          // Create Order
+          // Create order document
           const orderRef = db.collection("orders").doc();
           transaction.set(orderRef, {
-            userId: userId,
+            userId,
             userName: freshUserData.name || freshUserData.displayName || "",
             userEmail: freshUserData.email || "",
             userNumericId: freshUserData.userId || null,
@@ -203,10 +193,10 @@ async function processAutoOrders() {
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           });
 
-          // Create Transaction Record
+          // Create transaction record
           const transRef = db.collection("transactions").doc();
           transaction.set(transRef, {
-            userId: userId,
+            userId,
             amount: totalCost,
             type: "debit",
             description: "Auto Order Payment",
@@ -214,18 +204,19 @@ async function processAutoOrders() {
           });
         });
 
-        console.log(`[AutoOrder] Successfully processed order for user ${userId} (${userData.name}). Total cost: ৳${totalCost}.`);
+        console.log(`[AutoOrder] ✅ Success for ${userId} (${userData.name}). ৳${totalCost} deducted.`);
         successCount++;
       } catch (err) {
-        console.error(`[AutoOrder] Transaction failed for user ${userId}:`, err.message);
+        console.error(`[AutoOrder] ❌ Transaction failed for ${userId}:`, err.message);
         failedCount++;
       }
     }
 
-    console.log(`\n[AutoOrder] Execution Summary:`);
-    console.log(`- Successfully processed: ${successCount}`);
-    console.log(`- Failed: ${failedCount}`);
-    console.log(`- Auto-order disabled (insufficient balance): ${turnedOffCount}`);
+    console.log(`\n[AutoOrder] ── Summary ──`);
+    console.log(`✅ Successfully ordered : ${successCount}`);
+    console.log(`⏭️  Skipped (already done): ${skippedCount}`);
+    console.log(`❌ Failed               : ${failedCount}`);
+    console.log(`🔴 Auto-order turned off: ${turnedOffCount}`);
 
   } catch (error) {
     console.error("[AutoOrder] Unhandled execution error:", error);
@@ -233,7 +224,7 @@ async function processAutoOrders() {
   }
 }
 
-// Run the script
+// Run
 processAutoOrders()
   .then(() => process.exit(0))
   .catch((err) => {
