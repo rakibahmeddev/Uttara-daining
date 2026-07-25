@@ -22,7 +22,7 @@ const getSlot = (order: Order): string => {
 export default function Orders() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [meals, setMeals] = useState<any[]>([]);
-    const [filter, setFilter] = useState("all");
+    const [filter, setFilter] = useState("pending");
     const [searchQuery, setSearchQuery] = useState("");
     const [slotFilter, setSlotFilter] = useState("all");
     const [mealFilter, setMealFilter] = useState("all");
@@ -351,7 +351,7 @@ export default function Orders() {
                             className="appearance-none bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 cursor-pointer text-slate-700 font-medium"
                             style={{ padding: "12px 36px 12px 42px", width: "100%", textOverflow: "ellipsis" }}
                         >
-                            <option value="all">Available Meals</option>
+                            <option value="all">Today's Pending</option>
                             {availableMeals.map(m => (
                                 <option key={m.id} value={m.name}>
                                     {m.name}, {formatDateOnlyBD(m.date)} (Order={mealCounts[m.id] || 0})
@@ -370,6 +370,36 @@ export default function Orders() {
                         </button>
                     )}
                 </div>
+
+                {/* Selected meal summary bar */}
+                {mealFilter !== "all" && (() => {
+                    const selectedMealObj = availableMeals.find(m => m.name === mealFilter);
+                    const totalOrders = filteredOrders.length;
+                    const totalAmount = filteredOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+                    return (
+                        <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <Utensils size={15} className="text-orange-500" />
+                                <span className="text-sm font-semibold text-orange-700">
+                                    {mealFilter}
+                                    {selectedMealObj && (
+                                        <span className="font-normal text-orange-500 ml-1">
+                                            — {formatDateOnlyBD(selectedMealObj.date)}
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm font-bold">
+                                <span className="bg-orange-100 text-orange-700 rounded-lg px-3 py-1">
+                                    {totalOrders} Orders
+                                </span>
+                                <span className="bg-white border border-orange-200 text-orange-600 rounded-lg px-3 py-1">
+                                    ৳{totalAmount.toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden" style={{ marginTop: "10px" }}>
