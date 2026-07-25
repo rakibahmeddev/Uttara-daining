@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
-import { placeOrder } from '../../services/db';
+import { placeOrder, getMeals } from '../../services/db';
 import { Button } from '../../components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -51,27 +51,9 @@ export default function StudentHome() {
 
   const fetchMeals = async () => {
     try {
-      const q = query(collection(db, 'meals'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-      const mealsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Meal[];
+      const data = await getMeals();
+      const availableMeals = data.filter((meal) => meal.available);
       
-      const nowTime = new Date();
-      const currentH = nowTime.getHours();
-      const targetDateObj = new Date(nowTime);
-      if (currentH >= 13) {
-        targetDateObj.setDate(targetDateObj.getDate() + 1);
-      }
-      const yyyy = targetDateObj.getFullYear();
-      const mm = String(targetDateObj.getMonth() + 1).padStart(2, '0');
-      const dd = String(targetDateObj.getDate()).padStart(2, '0');
-      const computedDateStr = `${yyyy}-${mm}-${dd}`;
-
-      const availableMeals = mealsData
-        .filter((meal) => meal.available)
-        .map((meal) => ({ ...meal, date: computedDateStr }));
       setMeals(availableMeals);
       const initialQuantities = {};
       availableMeals.forEach((meal) => {

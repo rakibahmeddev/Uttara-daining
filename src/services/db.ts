@@ -40,7 +40,27 @@ export const deleteMeal = async (id) => {
 export const getMeals = async (): Promise<Meal[]> => {
     const q = query(collection(db, "meals"), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Meal));
+    
+    const nowTime = new Date();
+    const currentH = nowTime.getHours();
+    const targetDateObj = new Date(nowTime);
+    if (currentH >= 13) {
+        targetDateObj.setDate(targetDateObj.getDate() + 1);
+    }
+    const yyyy = targetDateObj.getFullYear();
+    const mm = String(targetDateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(targetDateObj.getDate()).padStart(2, '0');
+    const computedDateStr = `${yyyy}-${mm}-${dd}`;
+
+    return snapshot.docs.map(doc => {
+        const data = doc.data() as Meal;
+        // If the meal is available (on the active menu), its date should sync with the current rollover logic
+        // so that the admin sees the same date as the student cards.
+        if (data.available) {
+            data.date = computedDateStr;
+        }
+        return { id: doc.id, ...data };
+    });
 };
 
 // --- Users ---
