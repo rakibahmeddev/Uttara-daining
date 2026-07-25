@@ -389,8 +389,15 @@ export default function RiderDeliveryScreen() {
                                   <span className="ml-1 text-orange-600 bg-orange-50 rounded" style={{ fontSize: '10px', padding: '1px 5px', fontWeight: 700 }}>Guest</span>
                                 )}
                               </div>
-                              <div className="font-semibold" style={{ fontSize: '11px', color: '#6366f1', background: '#eef2ff', borderRadius: '4px', padding: '1px 6px', display: 'inline-block', marginTop: '2px' }}>
-                                #{order.userNumericId || "—"}
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                                <span className="font-semibold" style={{ fontSize: '11px', color: '#6366f1', background: '#eef2ff', borderRadius: '4px', padding: '1px 6px' }}>
+                                  #{order.userNumericId || "—"}
+                                </span>
+                                {order.orderType === "auto" ? (
+                                  <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded uppercase tracking-wider" style={{ fontSize: '9px', padding: '2px 5px' }}>Auto</span>
+                                ) : (
+                                  <span className="font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded uppercase tracking-wider" style={{ fontSize: '9px', padding: '2px 5px' }}>Manual</span>
+                                )}
                               </div>
                             </td>
                             <td style={{ padding: '12px 6px', verticalAlign: 'middle' }}>
