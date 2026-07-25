@@ -147,7 +147,8 @@ async function processAutoOrders() {
         continue;
       }
 
-      // ── Place order via Firestore transaction ──
+      // ── Place ONE order per meal via Firestore transaction ──
+      // Each meal gets its own order document so slot filters work correctly.
       try {
         await db.runTransaction(async (transaction) => {
           const freshUserSnap = await transaction.get(userDoc.ref);
@@ -175,36 +176,38 @@ async function processAutoOrders() {
           transaction.update(userDoc.ref, {
             balance: newBalance,
             orderedMealsCount,
-            lastAutoOrderDate: bdDateStr   // ← duplicate guard key
+            lastAutoOrderDate: bdDateStr
           });
 
-          // Create order document
-          const orderRef = db.collection("orders").doc();
-          transaction.set(orderRef, {
-            userId,
-            userName: freshUserData.name || freshUserData.displayName || "",
-            userEmail: freshUserData.email || "",
-            userNumericId: freshUserData.userId || null,
-            roomNumber: freshUserData.roomNumber || "",
-            items: orderItems,
-            totalAmount: totalCost,
-            status: "pending",
-            orderType: "auto",
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
-          });
+          // Create ONE order document PER MEAL (so slot filter is accurate)
+          for (const item of orderItems) {
+            const orderRef = db.collection("orders").doc();
+            transaction.set(orderRef, {
+              userId,
+              userName: freshUserData.name || freshUserData.displayName || "",
+              userEmail: freshUserData.email || "",
+              userNumericId: freshUserData.userId || null,
+              roomNumber: freshUserData.roomNumber || "",
+              items: [item],                        // single item per order
+              totalAmount: item.price || 0,
+              status: "pending",
+              orderType: "auto",
+              createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+          }
 
-          // Create transaction record
+          // Single transaction record for total deduction
           const transRef = db.collection("transactions").doc();
           transaction.set(transRef, {
             userId,
             amount: totalCost,
             type: "debit",
-            description: "Auto Order Payment",
+            description: `Auto Order Payment (${orderItems.length} meal${orderItems.length > 1 ? 's' : ''})`,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           });
         });
 
-        console.log(`[AutoOrder] ✅ Success for ${userId} (${userData.name}). ৳${totalCost} deducted.`);
+        console.log(`[AutoOrder] ✅ Success for ${userId} (${userData.name}). ${orderItems.length} order(s) created. ৳${totalCost} deducted.`);
         successCount++;
       } catch (err) {
         console.error(`[AutoOrder] ❌ Transaction failed for ${userId}:`, err.message);
