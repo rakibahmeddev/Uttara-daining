@@ -63,6 +63,28 @@ export const getMeals = async (): Promise<Meal[]> => {
     });
 };
 
+// --- Auto Order Settings ---
+
+/**
+ * অটো অর্ডার সেটিংস আপডেট করে।
+ * `users/{userId}` ডকুমেন্টে autoOrderEnabled, autoOrderLunch, autoOrderDinner ফিল্ড সেভ করে।
+ */
+export const updateAutoOrderSettings = async (
+    userId: string,
+    settings: {
+        autoOrderEnabled: boolean;
+        autoOrderLunch: boolean;
+        autoOrderDinner: boolean;
+    }
+): Promise<void> => {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+        autoOrderEnabled: settings.autoOrderEnabled,
+        autoOrderLunch: settings.autoOrderLunch,
+        autoOrderDinner: settings.autoOrderDinner,
+    });
+};
+
 // --- Users ---
 export const getUsers = async (): Promise<UserDoc[]> => {
     const q = query(collection(db, "users"));
@@ -103,7 +125,12 @@ export const updateUserBalance = async (userId, amount, description) => {
 
 // --- Orders ---
 export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = false) => {
-    if (!bypassTimeCheck) {
+    // Check if any item requires time restriction
+    const anyRestricted = Array.isArray(items)
+        ? items.some(item => item.isTimeRestricted !== false)
+        : true;
+
+    if (!bypassTimeCheck && anyRestricted) {
         const now = new Date();
         const bdFormatter = new Intl.DateTimeFormat('en-US', {
             timeZone: 'Asia/Dhaka',

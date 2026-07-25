@@ -184,8 +184,11 @@ export default function AdminDashboard() {
             const withdrawalsData = enrichWithdrawalsWithUserData(withdrawalsRaw, usersData);
 
             const totalRevenue = ordersData.reduce((s, o) => s + (o.totalAmount || 0), 0);
-            const pending = ordersData.filter(o => !o.status || o.status === 'pending').length;
-            setStats({ revenue: totalRevenue, totalOrders: ordersData.length, pendingOrders: pending, totalUsers: usersData.length });
+            const totalOrders = ordersData.reduce((total, o) =>
+                total + (o.items && Array.isArray(o.items) ? o.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) : 1), 0);
+            const pending = ordersData.filter(o => !o.status || o.status === 'pending').reduce((total, o) =>
+                total + (o.items && Array.isArray(o.items) ? o.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) : 1), 0);
+            setStats({ revenue: totalRevenue, totalOrders, pendingOrders: pending, totalUsers: usersData.length });
             setRecentOrders(ordersData.slice(0, 6));
             setWithdrawalRequests(withdrawalsData.slice(0, 5));
 

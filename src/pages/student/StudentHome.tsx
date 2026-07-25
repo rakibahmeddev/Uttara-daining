@@ -117,7 +117,8 @@ export default function StudentHome() {
           name: meal.name, 
           price: Number(meal.price) || 0, 
           quantity: Number(quantity) || 1, 
-          date: meal.date 
+          date: meal.date,
+          isTimeRestricted: meal.isTimeRestricted !== false,
         }],
         Number(total) || 0,
       );

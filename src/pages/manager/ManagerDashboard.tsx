@@ -32,7 +32,10 @@ export default function ManagerDashboard() {
     const fetchDashboardData = async () => {
         try {
             const ordersData = await getAllOrders();
-            const pending = ordersData.filter(o => !o.status || o.status === 'pending').length;
+            const totalOrders = ordersData.reduce((total, o) =>
+                total + (o.items && Array.isArray(o.items) ? o.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) : 1), 0);
+            const pending = ordersData.filter(o => !o.status || o.status === 'pending').reduce((total, o) =>
+                total + (o.items && Array.isArray(o.items) ? o.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) : 1), 0);
 
             // Get meals count
             const mealsSnapshot = await getDocs(collection(db, "meals"));
@@ -48,7 +51,7 @@ export default function ManagerDashboard() {
             setStats([
                 {
                     label: "Total Orders",
-                    value: ordersData.length,
+                    value: totalOrders,
                     icon: ShoppingBag,
                     bgColor: "linear-gradient(135deg,#0284c7,#38bdf8)",
                     glow: "#38bdf8"

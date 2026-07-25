@@ -153,7 +153,8 @@ export default function Reports() {
 
     // Summary stats
     const totalRevenue = filteredOrders.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
-    const totalOrders = filteredOrders.length;
+    const totalOrders = filteredOrders.reduce((total, o) =>
+        total + (o.items && Array.isArray(o.items) ? o.items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) : 1), 0);
     const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
     const uniqueCustomers = new Set(filteredOrders.map(o => o.userId)).size;
 

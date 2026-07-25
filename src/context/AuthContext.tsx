@@ -36,6 +36,12 @@ export interface AppUser extends User {
   hallName?: string;
   balance?: number;
   uid: string;
+  assignedDeliveryDate?: string;
+  /** Auto Order preference fields */
+  autoOrderEnabled?: boolean;
+  autoOrderLunch?: boolean;
+  autoOrderDinner?: boolean;
+  autoOrderMealIds?: string[];
 }
 
 /** AuthContext-এ পাওয়া যাবে এমন সব ভ্যালুর টাইপ */

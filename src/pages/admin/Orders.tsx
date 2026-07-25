@@ -420,7 +420,7 @@ export default function Orders() {
                                             />
                                         </td>
                                         <td className="whitespace-nowrap text-sm font-bold text-slate-800">
-                                            #{index + 1}
+                                            #{orders.length - index}
                                         </td>
                                         <td className="whitespace-nowrap text-sm text-slate-500">
                                             {order.createdAt ? formatDateShortBD(order.createdAt) : "—"}

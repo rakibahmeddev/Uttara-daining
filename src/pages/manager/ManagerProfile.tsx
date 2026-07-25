@@ -18,57 +18,72 @@ export default function ManagerProfile() {
     ];
 
     return (
-        <div className="max-w-3xl mx-auto animate-fade-in-up">
+        <div className="max-w-3xl mx-auto animate-fade-in-up" style={{ padding: '20px 16px 60px' }}>
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-teal-650 to-teal-500 p-8 text-white">
-                    <div className="flex items-center space-x-4">
+                <div
+                    className="bg-gradient-to-r from-teal-650 to-teal-500 text-white"
+                    style={{ padding: '32px 24px' }}
+                >
+                    <div className="flex items-center" style={{ gap: '16px' }}>
                         <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white text-3xl font-extrabold shadow-inner">
                             {currentUser.name?.[0]?.toUpperCase() || 'M'}
                         </div>
                         <div>
                             <h1 className="text-3xl font-black">{currentUser.name}</h1>
-                            <p className="text-teal-100 font-medium capitalize mt-0.5">{currentUser.role}</p>
+                            <p className="text-teal-100 font-medium capitalize" style={{ marginTop: '4px' }}>{currentUser.role}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Alert */}
-                <div className="px-8 py-4 bg-teal-50 border-b border-slate-100">
+                <div
+                    className="bg-teal-50 border-b border-slate-100"
+                    style={{ padding: '12px 20px' }}
+                >
                     <p className="text-sm text-teal-700">
                         <strong>Note:</strong> This information can only be updated by an administrator. If you need to change any details, please contact the admin.
                     </p>
                 </div>
 
                 {/* Profile Fields */}
-                <div className="p-8 space-y-4">
-                    {profileFields.map((field, index) => {
-                        const Icon = field.icon;
-                        return (
-                            <div
-                                key={index}
-                                className={`flex items-center space-x-4 p-4 rounded-xl border transition-all ${
-                                    field.highlight
-                                        ? 'bg-teal-50 border-teal-200/50 text-teal-700'
-                                        : 'bg-slate-50 border-slate-100'
-                                }`}
-                            >
-                                <div className={`p-2.5 rounded-xl border flex items-center justify-center ${
-                                    field.highlight ? 'bg-teal-100 border-teal-200 text-teal-600' : 'bg-white border-slate-200 text-slate-400'
-                                }`}>
-                                    <Icon size={20} />
+                <div style={{ padding: '20px 16px 24px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {profileFields.map((field, index) => {
+                            const Icon = field.icon;
+                            return (
+                                <div
+                                    key={index}
+                                    className={`flex items-center rounded-xl border transition-all ${
+                                        field.highlight
+                                            ? 'bg-teal-50 border-teal-200/50 text-teal-700'
+                                            : 'bg-slate-50 border-slate-100'
+                                    }`}
+                                    style={{ padding: '12px 14px', gap: '14px' }}
+                                >
+                                    <div
+                                        className={`rounded-xl border flex items-center justify-center flex-shrink-0 ${
+                                            field.highlight ? 'bg-teal-100 border-teal-200 text-teal-600' : 'bg-white border-slate-200 text-slate-400'
+                                        }`}
+                                        style={{ padding: '10px', width: '42px', height: '42px' }}
+                                    >
+                                        <Icon size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{field.label}</p>
+                                        <p
+                                            className={`text-lg font-bold ${
+                                                field.highlight ? 'text-teal-600' : 'text-slate-800'
+                                            }`}
+                                            style={{ marginTop: '2px' }}
+                                        >
+                                            {field.value || 'Not provided'}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{field.label}</p>
-                                    <p className={`text-lg font-bold mt-0.5 ${
-                                        field.highlight ? 'text-teal-600' : 'text-slate-800'
-                                    }`}>
-                                        {field.value || 'Not provided'}
-                                    </p>
-                                </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>

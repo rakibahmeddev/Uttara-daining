@@ -86,6 +86,11 @@ export interface UserDoc extends FirestoreDoc {
     balance?: number;
     uid?: string;
     assignedDeliveryDate?: string;
+    /** Auto Order preference fields */
+    autoOrderEnabled?: boolean;
+    autoOrderLunch?: boolean;
+    autoOrderDinner?: boolean;
+    autoOrderMealIds?: string[];
 }
 
 export interface BalanceRequest extends FirestoreDoc {
