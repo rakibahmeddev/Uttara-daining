@@ -317,16 +317,18 @@ export default function RiderDeliveryScreen() {
                     </svg>
                     No pending orders
                   </h2>
-                  <button
-                    onClick={() => openGuestModal('')}
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center gap-1"
-                    style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                  >
-                    <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Add New
-                  </button>
+                  {isAuthorizedRider && (
+                    <button
+                      onClick={() => openGuestModal('')}
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center gap-1"
+                      style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
+                      </svg>
+                      Add New
+                    </button>
+                  )}
                 </div>
                 <div style={{ padding: '32px 16px', textAlign: 'center' }}>
                   <p className="text-slate-500 font-medium" style={{ fontSize: '13px' }}>All orders have been delivered for today.</p>
@@ -351,16 +353,18 @@ export default function RiderDeliveryScreen() {
                       <span className="font-bold text-slate-600 bg-white rounded-full border border-gray-200 shadow-sm" style={{ padding: '3px 10px', fontSize: '11px' }}>
                         {roomOrders.length} {roomOrders.length === 1 ? 'Order' : 'Orders'}
                       </span>
-                      <button
-                        onClick={() => openGuestModal(room)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center gap-1"
-                        style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                      >
-                        <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Add New
-                      </button>
+                      {isAuthorizedRider && (
+                        <button
+                          onClick={() => openGuestModal(room)}
+                          className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all active:scale-95 flex items-center gap-1"
+                          style={{ padding: '5px 10px', fontSize: '11px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path>
+                          </svg>
+                          Add New
+                        </button>
+                      )}
                     </div>
                   </div>
 
