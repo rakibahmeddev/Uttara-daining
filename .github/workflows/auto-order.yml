@@ -1,0 +1,33 @@
+name: Auto Order Daily Cron
+
+on:
+  schedule:
+    # Runs at 9 PM, 10 PM, and 11 PM Bangladesh Time (UTC+6)
+    # 9 PM BD = 15:00 UTC, 10 PM BD = 16:00 UTC, 11 PM BD = 17:00 UTC
+    - cron: '0 15,16,17 * * *'
+  
+  # Allow manual triggering from the GitHub Actions tab for testing
+  workflow_dispatch:
+
+jobs:
+  run-auto-order:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install Dependencies
+        working-directory: ./functions
+        run: npm ci || npm install
+        
+      - name: Run Auto Order Script
+        working-directory: ./functions
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node autoOrderCron.js
