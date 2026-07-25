@@ -4,8 +4,8 @@ on:
   schedule:
     # Runs at 9:00 PM and 10:00 PM Bangladesh Time (UTC+6)
     - cron: '0 15,16 * * *'
-    # Runs at 11:50 PM Bangladesh Time (UTC+6)
-    - cron: '50 17 * * *'
+    # Runs at 10:58 PM Bangladesh Time (UTC+6)
+    - cron: '58 16 * * *'
   
   # Allow manual triggering from the GitHub Actions tab for testing
   workflow_dispatch:
