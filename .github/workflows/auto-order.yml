@@ -2,9 +2,10 @@ name: Auto Order Daily Cron
 
 on:
   schedule:
-    # Runs at 9 PM, 10 PM, and 11 PM Bangladesh Time (UTC+6)
-    # 9 PM BD = 15:00 UTC, 10 PM BD = 16:00 UTC, 11 PM BD = 17:00 UTC
-    - cron: '0 15,16,17 * * *'
+    # Runs at 9:00 PM and 10:00 PM Bangladesh Time (UTC+6)
+    - cron: '0 15,16 * * *'
+    # Runs at 11:50 PM Bangladesh Time (UTC+6)
+    - cron: '50 17 * * *'
   
   # Allow manual triggering from the GitHub Actions tab for testing
   workflow_dispatch:
