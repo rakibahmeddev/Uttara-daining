@@ -58,6 +58,7 @@ export interface Order extends FirestoreDoc {
     deliveredByRoom?: string;
     deliveredAt?: Timestamp | { seconds: number; nanoseconds: number } | Date;
     paymentMethod?: "balance" | "cash" | string;
+    orderType?: "manual" | "auto";
 }
 
 export interface Meal extends FirestoreDoc {

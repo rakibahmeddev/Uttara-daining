@@ -124,7 +124,7 @@ export const updateUserBalance = async (userId, amount, description) => {
 };
 
 // --- Orders ---
-export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = false) => {
+export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = false, orderType: "manual" | "auto" = "manual") => {
     // Check if any item requires time restriction
     const anyRestricted = Array.isArray(items)
         ? items.some(item => item.isTimeRestricted !== false)
@@ -222,6 +222,7 @@ export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = f
             items,
             totalAmount,
             status: 'pending',
+            orderType,
             createdAt: serverTimestamp()
         });
 

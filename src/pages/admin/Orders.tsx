@@ -434,13 +434,24 @@ export default function Orders() {
                                             />
                                         </td>
                                         <td className="whitespace-nowrap">
-                                            {slot ? (
-                                                <span className="bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-md px-2 py-0.5 text-[11px] font-bold">
-                                                    {slot}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-400 text-xs">—</span>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {slot ? (
+                                                    <span className="bg-indigo-50 text-indigo-600 border border-indigo-200 rounded-md px-2 py-0.5 text-[11px] font-bold">
+                                                        {slot}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 text-xs">—</span>
+                                                )}
+                                                {order.orderType === "auto" ? (
+                                                    <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                                        Auto
+                                                    </span>
+                                                ) : (
+                                                    <span className="bg-slate-100 text-slate-500 border border-slate-200 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                                        Manual
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="text-sm text-slate-600 max-w-xs">
                                             <div className="flex flex-col gap-1.5">

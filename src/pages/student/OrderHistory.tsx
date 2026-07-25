@@ -209,8 +209,19 @@ export default function OrderHistory() {
                                                 <div className="text-sm font-semibold text-slate-800">
                                                     {order.createdAt ? formatDateBD(order.createdAt) : 'Just now'}
                                                 </div>
-                                                <div className="text-xs text-slate-500 capitalize font-medium mt-0.5">
-                                                    Slot: {getSlot(order)}
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <div className="text-xs text-slate-500 capitalize font-medium">
+                                                        Slot: {getSlot(order)}
+                                                    </div>
+                                                    {order.orderType === "auto" ? (
+                                                        <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider">
+                                                            Auto
+                                                        </span>
+                                                    ) : (
+                                                        <span className="bg-slate-100 text-slate-500 border border-slate-200 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider">
+                                                            Manual
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td style={{ padding: '16px 24px' }}>

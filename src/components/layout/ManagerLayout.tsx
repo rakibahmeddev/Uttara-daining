@@ -9,11 +9,13 @@ import {
     User,
     Bell,
     Bike,
+    Zap,
 } from "lucide-react";
 
 const navItems: NavItem[] = [
     { path: "/manager", label: "Dashboard", icon: LayoutDashboard, color: "#14b8a6" },
     { path: "/manager/order", label: <span style={{ display: 'flex', flexDirection: 'column' }}><span>Order Meal</span><span className="text-[10px] opacity-75 leading-none mt-0.5">(only for myself)</span></span>, icon: Utensils, color: "#a855f7" },
+    { path: "/manager/auto-order", label: <span style={{ display: 'flex', flexDirection: 'column' }}><span>Auto Order</span><span className="text-[10px] opacity-75 leading-none mt-0.5">(only for myself)</span></span>, icon: Zap, color: "#ea580c" },
     { path: "/manager/meals", label: "Manage Meals", icon: Utensils, color: "#f97316" },
     { path: "/manager/orders", label: "Orders", icon: ShoppingBag, color: "#0ea5e9" },
     { path: "/manager/assign-delivery", label: "Assign Delivery", icon: Truck, color: "#22c55e" },

@@ -54,6 +54,7 @@ import { NotificationsProvider } from "./context/NotificationsContext";
 import StudentHome from "./pages/student/StudentHome";
 import OrderHistory from "./pages/student/OrderHistory";
 import Profile from "./pages/student/Profile";
+import AutoOrder from "./pages/student/AutoOrder";
 import WithdrawalRequest from "./pages/student/WithdrawalRequest";
 import RiderDeliveryScreen from "./pages/student/RiderDeliveryScreen";
 
@@ -95,6 +96,7 @@ function App() {
             >
               <Route index element={<AdminDashboard />} />
               <Route path="order" element={<StudentHome />} />
+              <Route path="auto-order" element={<AutoOrder />} />
               <Route path="meals" element={<Meals />} />
               <Route path="users" element={<Users />} />
               <Route path="assign-delivery" element={<AssignDelivery />} />
@@ -118,6 +120,7 @@ function App() {
             >
               <Route index element={<ManagerDashboard />} />
               <Route path="order" element={<StudentHome />} />
+              <Route path="auto-order" element={<AutoOrder />} />
               <Route path="meals" element={<Meals />} />
               <Route path="orders" element={<Orders />} />
               <Route path="assign-delivery" element={<AssignDelivery />} />
@@ -141,6 +144,7 @@ function App() {
             >
               <Route index element={<StudentHome />} />
               <Route path="history" element={<OrderHistory />} />
+              <Route path="auto-order" element={<AutoOrder />} />
               <Route path="withdrawal" element={<WithdrawalRequest />} />
               <Route path="profile" element={<Profile />} />
               <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
