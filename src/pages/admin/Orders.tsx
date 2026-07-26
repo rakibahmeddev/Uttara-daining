@@ -72,6 +72,29 @@ export default function Orders() {
         }
     };
 
+    const handleBulkDeliver = async () => {
+        if (selectedIds.length === 0) return;
+        
+        const isConfirmed = window.confirm(
+            `📦 Are you sure you want to mark ${selectedIds.length} order(s) as delivered?`
+        );
+        
+        if (!isConfirmed) return;
+        
+        setLoading(true);
+        try {
+            const deliverPromises = selectedIds.map(id => updateOrderStatus(id, "delivered"));
+            await Promise.all(deliverPromises);
+            alert(`✅ Successfully delivered ${selectedIds.length} order(s).`);
+            setSelectedIds([]);
+            fetchData();
+        } catch (error: any) {
+            console.error("Error delivering orders:", error);
+            alert("❌ Failed to deliver some orders.");
+            setLoading(false);
+        }
+    };
+
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
         try {
             await updateOrderStatus(orderId, newStatus);
@@ -248,20 +271,31 @@ export default function Orders() {
                 <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#ffffff" }}>Manage Orders</h2>
                 <div>
                     {selectedIds.length > 0 ? (
-                        <Button 
-                            onClick={handleBulkDelete} 
-                            disabled={loading}
-                            className="bg-red-500 hover:bg-red-600 text-white border-0 shadow-lg" 
-                            size="sm" 
-                            style={{ padding: "6px 12px" }}
-                        >
-                            {loading ? "Deleting..." : (
-                                <>
-                                    <Trash2 size={16} className="mr-2 inline" />
-                                    Delete {selectedIds.length} Selected
-                                </>
-                            )}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                onClick={handleBulkDeliver} 
+                                disabled={loading}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 shadow-sm" 
+                                size="sm" 
+                                style={{ padding: "6px 12px" }}
+                            >
+                                {loading ? "Delivering..." : `Deliver ${selectedIds.length}`}
+                            </Button>
+                            <Button 
+                                onClick={handleBulkDelete} 
+                                disabled={loading}
+                                className="bg-red-500 hover:bg-red-600 text-white border-0 shadow-lg" 
+                                size="sm" 
+                                style={{ padding: "6px 12px" }}
+                            >
+                                {loading ? "Deleting..." : (
+                                    <>
+                                        <Trash2 size={16} className="mr-2 inline" />
+                                        Delete {selectedIds.length}
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     ) : (
                         <Button onClick={fetchData} variant="outline" size="sm" style={{ padding: "4px 8px" }}>
                             <RefreshCw size={14} className="mr-1.5 inline" />
