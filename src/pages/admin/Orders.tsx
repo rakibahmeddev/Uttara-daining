@@ -252,7 +252,6 @@ export default function Orders() {
     const tabs = [
         { id: "pending", label: "Pending", count: pendingCount },
         { id: "delivered", label: "Delivered", count: deliveredCount },
-        { id: "all", label: "All Orders", count: allCount },
     ];
 
     if (loading) {
