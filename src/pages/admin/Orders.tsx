@@ -75,17 +75,28 @@ export default function Orders() {
     const handleBulkDeliver = async () => {
         if (selectedIds.length === 0) return;
         
+        // Filter out already delivered orders
+        const pendingSelectedIds = selectedIds.filter(id => {
+            const order = orders.find(o => o.id === id);
+            return order && order.status !== 'delivered' && order.status !== 'completed';
+        });
+
+        if (pendingSelectedIds.length === 0) {
+            alert("⚠️ Selected orders are already delivered.");
+            return;
+        }
+        
         const isConfirmed = window.confirm(
-            `📦 Are you sure you want to mark ${selectedIds.length} order(s) as delivered?`
+            `📦 Are you sure you want to mark ${pendingSelectedIds.length} order(s) as delivered?`
         );
         
         if (!isConfirmed) return;
         
         setLoading(true);
         try {
-            const deliverPromises = selectedIds.map(id => updateOrderStatus(id, "delivered"));
+            const deliverPromises = pendingSelectedIds.map(id => updateOrderStatus(id, "delivered"));
             await Promise.all(deliverPromises);
-            alert(`✅ Successfully delivered ${selectedIds.length} order(s).`);
+            alert(`✅ Successfully delivered ${pendingSelectedIds.length} order(s).`);
             setSelectedIds([]);
             fetchData();
         } catch (error: any) {
@@ -271,15 +282,17 @@ export default function Orders() {
                 <div>
                     {selectedIds.length > 0 ? (
                         <div className="flex items-center gap-2">
-                            <Button 
-                                onClick={handleBulkDeliver} 
-                                disabled={loading}
-                                className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 shadow-sm" 
-                                size="sm" 
-                                style={{ padding: "6px 12px" }}
-                            >
-                                {loading ? "Delivering..." : `Deliver ${selectedIds.length}`}
-                            </Button>
+                            {filter !== 'delivered' && (
+                                <Button 
+                                    onClick={handleBulkDeliver} 
+                                    disabled={loading}
+                                    className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 shadow-sm" 
+                                    size="sm" 
+                                    style={{ padding: "6px 12px" }}
+                                >
+                                    {loading ? "Delivering..." : `Deliver ${selectedIds.length}`}
+                                </Button>
+                            )}
                             <Button 
                                 onClick={handleBulkDelete} 
                                 disabled={loading}
