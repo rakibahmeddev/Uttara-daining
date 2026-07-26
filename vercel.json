@@ -4,5 +4,11 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/auto-order",
+      "schedule": "0 16 * * *"
+    }
   ]
 }
