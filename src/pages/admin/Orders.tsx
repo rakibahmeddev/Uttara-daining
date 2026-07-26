@@ -282,7 +282,10 @@ export default function Orders() {
                 <div>
                     {selectedIds.length > 0 ? (
                         <div className="flex items-center gap-2">
-                            {filter !== 'delivered' && (
+                            {selectedIds.filter(id => {
+                                const o = orders.find(ord => ord.id === id);
+                                return o && o.status !== 'delivered' && o.status !== 'completed';
+                            }).length > 0 && (
                                 <Button 
                                     onClick={handleBulkDeliver} 
                                     disabled={loading}
@@ -290,7 +293,10 @@ export default function Orders() {
                                     size="sm" 
                                     style={{ padding: "6px 12px" }}
                                 >
-                                    {loading ? "Delivering..." : `Deliver ${selectedIds.length}`}
+                                    {loading ? "Delivering..." : `Deliver ${selectedIds.filter(id => {
+                                        const o = orders.find(ord => ord.id === id);
+                                        return o && o.status !== 'delivered' && o.status !== 'completed';
+                                    }).length}`}
                                 </Button>
                             )}
                             <Button 
