@@ -107,16 +107,64 @@ async function processAutoOrders() {
         continue;
       }
 
-      // Filter to meals that are actually available right now
-      const selectedMeals = mealIds
+      // Filter to meals that are actually available right now (match by ID)
+      let selectedMeals = mealIds
         .filter(id => availableMeals.has(id))
         .map(id => availableMeals.get(id));
+
+      // ── Slot-based fallback ──────────────────────────────────────────────────
+      // If none of the stored IDs are in today's available meals (because meals
+      // are recreated each day with new IDs), derive the desired slots from the
+      // user's stored meal preferences and pick today's matching meals instead.
+      if (selectedMeals.length === 0) {
+        console.log(`[AutoOrder] User ${userId}: stored meal IDs not in today's meals. Falling back to slot matching.`);
+
+        // Determine which slots the user wants
+        const wantedSlots = new Set();
+
+        // From autoOrderMealIds: look up the slot of each stored meal in Firestore
+        // (they may exist in the DB even if not "available" today)
+        for (const storedId of mealIds) {
+          // We'll derive slot from the legacy flags as a best-effort
+        }
+
+        // Prefer the explicit boolean flags (always kept in sync by the UI)
+        if (userData.autoOrderLunch)  wantedSlots.add("Lunch");
+        if (userData.autoOrderDinner) wantedSlots.add("Dinner");
+        if (userData.autoOrderBreakfast) wantedSlots.add("Breakfast");
+
+        // If flags are absent, try to derive from stored meal IDs via timeSlot name
+        if (wantedSlots.size === 0 && mealIds.length > 0) {
+          // Check each available meal to see if any stored ID shares the same slot
+          // We can't look up old meals cheaply, so just skip — user should re-save prefs
+          console.log(`[AutoOrder] User ${userId}: no slot flags found. Skipping.`);
+          skippedCount++;
+          continue;
+        }
+
+        // Pick today's available meal for each wanted slot
+        for (const slot of wantedSlots) {
+          const match = Array.from(availableMeals.values()).find(
+            m => normalizeSlot(m.timeSlot) === slot
+          );
+          if (match) selectedMeals.push(match);
+        }
+
+        if (selectedMeals.length === 0) {
+          console.log(`[AutoOrder] User ${userId}: no available meals found for wanted slots [${[...wantedSlots].join(", ")}]. Skipping.`);
+          skippedCount++;
+          continue;
+        }
+
+        console.log(`[AutoOrder] User ${userId}: slot fallback matched ${selectedMeals.length} meal(s).`);
+      }
 
       if (selectedMeals.length === 0) {
         console.log(`[AutoOrder] User ${userId}'s selected meals are not currently available. Skipping.`);
         skippedCount++;
         continue;
       }
+
 
       // Build order items and total cost (quantity always 1)
       let totalCost = 0;
