@@ -2,8 +2,12 @@ name: Auto Order Daily Cron
 
 on:
   schedule:
-    # Runs at 9:00 PM and 10:00 PM Bangladesh Time (UTC+6)
-    - cron: '0 15,16 * * *'
+    # Runs at 9:00 PM Bangladesh Time (UTC+6)
+    - cron: '0 15 * * *'
+    # Runs at 9:50 PM Bangladesh Time (UTC+6)
+    - cron: '50 15 * * *'
+    # Runs at 10:00 PM Bangladesh Time (UTC+6)
+    - cron: '0 16 * * *'
     # Runs at 10:58 PM Bangladesh Time (UTC+6)
     - cron: '58 16 * * *'
   
