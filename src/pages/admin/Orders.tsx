@@ -541,13 +541,20 @@ export default function Orders() {
                                             ৳{order.totalAmount?.toLocaleString()}
                                         </td>
                                         <td className="whitespace-nowrap">
-                                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold capitalize border
-                                            ${(order.status === 'delivered' || order.status === 'completed') ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                                                order.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-200' :
-                                                    order.status === 'hold' ? 'bg-orange-50 text-orange-600 border-orange-200' :
-                                                        'bg-amber-50 text-amber-600 border-amber-200'}`}>
-                                                {order.status || 'pending'}
-                                            </span>
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold capitalize border
+                                                ${(order.status === 'delivered' || order.status === 'completed') ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
+                                                    order.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-200' :
+                                                        order.status === 'hold' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                                            'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                                                    {order.status || 'pending'}
+                                                </span>
+                                                {(order.status === 'delivered' || order.status === 'completed') && (order as any).deliveredAt && (
+                                                    <span className="text-[10px] text-slate-500 font-medium">
+                                                        {formatDateShortBD((order as any).deliveredAt)}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="whitespace-nowrap text-right text-sm font-medium">
                                             <div style={{ display: "flex", justifyContent: "flex-end", gap: "2px" }}>

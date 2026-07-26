@@ -241,7 +241,11 @@ export const placeOrder = async (userId, items, totalAmount, bypassTimeCheck = f
 export const updateOrderStatus = async (orderId, status) => {
     console.log(`🔄 Updating order ${orderId} to status:`, status);
     const orderRef = doc(db, "orders", orderId);
-    await updateDoc(orderRef, { status });
+    if (status === 'delivered') {
+        await updateDoc(orderRef, { status, deliveredAt: new Date() });
+    } else {
+        await updateDoc(orderRef, { status });
+    }
     console.log(`✅ Order ${orderId} status updated to:`, status);
 };
 
