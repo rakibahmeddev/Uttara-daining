@@ -43,6 +43,11 @@ async function processAutoOrders() {
   const bdOffset = 6 * 60 * 60 * 1000; // UTC+6 in ms
   const bdNow = new Date(now.getTime() + bdOffset);
   const bdDateStr = bdNow.toISOString().slice(0, 10); // e.g. "2025-07-25"
+  
+  // Auto-orders placed at night are for tomorrow's meals
+  const bdTomorrow = new Date(bdNow.getTime() + 24 * 60 * 60 * 1000);
+  const bdTomorrowDateStr = bdTomorrow.toISOString().slice(0, 10);
+  
   console.log(`[AutoOrder] Processing for BD date: ${bdDateStr}`);
 
   try {
@@ -176,7 +181,7 @@ async function processAutoOrders() {
           name: meal.name,
           price: meal.price,
           quantity: 1,
-          date: meal.date,
+          date: bdTomorrowDateStr, // Set date to tomorrow
           timeSlot: meal.timeSlot || ""
         });
       }

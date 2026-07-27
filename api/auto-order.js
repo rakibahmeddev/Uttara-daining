@@ -28,6 +28,10 @@ async function processAutoOrders() {
   const bdOffset = 6 * 60 * 60 * 1000;
   const bdNow = new Date(now.getTime() + bdOffset);
   const bdDateStr = bdNow.toISOString().slice(0, 10);
+  
+  // Auto-orders placed at night are for tomorrow's meals
+  const bdTomorrow = new Date(bdNow.getTime() + 24 * 60 * 60 * 1000);
+  const bdTomorrowDateStr = bdTomorrow.toISOString().slice(0, 10);
 
   const logs = [];
   const log = (msg) => { console.log(msg); logs.push(msg); };
@@ -119,7 +123,7 @@ async function processAutoOrders() {
     const orderItems = [];
     for (const meal of selectedMeals) {
       totalCost += meal.price || 0;
-      orderItems.push({ id: meal.id, name: meal.name, price: meal.price, quantity: 1, date: meal.date, timeSlot: meal.timeSlot || "" });
+      orderItems.push({ id: meal.id, name: meal.name, price: meal.price, quantity: 1, date: bdTomorrowDateStr, timeSlot: meal.timeSlot || "" });
     }
 
     const currentBalance = userData.balance || 0;
