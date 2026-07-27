@@ -7,8 +7,8 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/auto-order",
-      "schedule": "0 16 * * *"
+      "path": "/api/auto-order",
+      "schedule": "20 15 * * *"
     }
   ]
 }
