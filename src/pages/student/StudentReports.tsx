@@ -179,12 +179,12 @@ export default function StudentReports() {
                     valueColor="#10b981"
                 />
 
-                {/* Last 7 Days — always fixed, not affected by filter */}
+                {/* Weekly Spend — always fixed, not affected by filter */}
                 <SummaryCard
                     icon={CalendarDays}
-                    label="Last 7 Days"
+                    label="Weekly Spend"
                     value={`৳${last7Cost.toLocaleString()}`}
-                    sub="Meal cost (7d)"
+                    sub="Past 7 days meals"
                     iconColor="#fbbf24"
                     cardBg="rgba(245,158,11,0.08)"
                     cardBorder="rgba(245,158,11,0.22)"
