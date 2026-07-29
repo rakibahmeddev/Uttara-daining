@@ -1,19 +1,20 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { Home, Clock, Wallet, User, X, LogOut, ChefHat, Truck, Zap } from "lucide-react";
+import { Home, Clock, Wallet, User, X, LogOut, ChefHat, Truck, Zap, BarChart2 } from "lucide-react";
 import { logoutUser } from "../../services/auth";
 import Footer from "./Footer";
 import Header, { STUDENT_NAV } from "./Header";
 import AlertsBanner from "./AlertsBanner";
 
 const NAV_ITEMS = [
-    { to: "/student",            icon: Home,   label: "Home"    },
-    { to: "/student/history",    icon: Clock,  label: "Order History"  },
-    { to: "/student/rider-delivery", icon: Truck, label: "My Delivery" },
-    { to: "/student/auto-order", icon: Zap, label: "Auto Order" },
-    { to: "/student/withdrawal", icon: Wallet, label: "Balance"  },
-    { to: "/student/profile",    icon: User,   label: "Profile" },
+    { to: "/student",            icon: Home,       label: "Home"          },
+    { to: "/student/history",    icon: Clock,      label: "Order History" },
+    { to: "/student/rider-delivery", icon: Truck,  label: "My Delivery"  },
+    { to: "/student/auto-order", icon: Zap,        label: "Auto Order"   },
+    { to: "/student/withdrawal", icon: Wallet,     label: "Balance"      },
+    { to: "/student/reports",    icon: BarChart2,  label: "Reports"      },
+    { to: "/student/profile",    icon: User,       label: "Profile"      },
 ];
 
 export default function StudentLayout() {

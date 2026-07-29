@@ -56,6 +56,7 @@ import OrderHistory from "./pages/student/OrderHistory";
 import Profile from "./pages/student/Profile";
 import AutoOrder from "./pages/student/AutoOrder";
 import WithdrawalRequest from "./pages/student/WithdrawalRequest";
+import StudentReports from "./pages/student/StudentReports";
 import RiderDeliveryScreen from "./pages/student/RiderDeliveryScreen";
 
 function RootRouteHandler() {
@@ -147,6 +148,7 @@ function App() {
               <Route path="history" element={<OrderHistory />} />
               <Route path="auto-order" element={<AutoOrder />} />
               <Route path="withdrawal" element={<WithdrawalRequest />} />
+              <Route path="reports" element={<StudentReports />} />
               <Route path="profile" element={<Profile />} />
               <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
             </Route>
