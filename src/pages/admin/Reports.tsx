@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { getAllOrdersEnriched } from "../../services/db";
 import { Avatar } from "../../components/admin/UserDisplay";
-import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, getDocs, where } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { Button } from "../../components/ui/Button";
-import { Download, TrendingUp, ShoppingBag, DollarSign, Users, Filter, X } from "lucide-react";
-import { format } from "date-fns";
+import { Download, TrendingUp, ShoppingBag, DollarSign, Users, Filter, X, Wallet, ArrowDownLeft, ArrowUpRight, CalendarDays } from "lucide-react";
+import { format, subDays, startOfDay } from "date-fns";
 import { formatDateBD } from "../../utils/date";
 import {
-    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import type { Order } from "../../types";
 
@@ -19,8 +19,12 @@ const toDateStr = (createdAt: any): string => {
     return format(d, "yyyy-MM-dd");
 };
 
+const toDate = (createdAt: any): Date => {
+    if (!createdAt) return new Date(0);
+    return createdAt?.toDate ? createdAt.toDate() : new Date(createdAt);
+};
+
 const getSlot = (order: Order): string => {
-    // Try to find slot from items timeSlot, or order-level slot field
     const raw = (order as any).slot || (order as any).timeSlot || (order.items?.[0] as any)?.timeSlot || "";
     if (!raw) return "";
     const lower = raw.toLowerCase();
@@ -59,27 +63,29 @@ const StatCard = ({ icon: Icon, label, value, sub, color }: { icon: any; label: 
     </div>
 );
 
+type TimeRange = "7" | "14" | "30" | "all";
+
 export default function Reports() {
     const [orders, setOrders] = useState<Order[]>([]);
-    const [dailyReports, setDailyReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Filters
+    // Global filters
     const [filterPerson, setFilterPerson] = useState("");
     const [filterDate, setFilterDate] = useState("");
     const [filterSlot, setFilterSlot] = useState("all");
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    // Person profile data
+    const [personData, setPersonData] = useState<any>(null);
+    const [personTransactions, setPersonTransactions] = useState<any[]>([]);
+    const [personTimeRange, setPersonTimeRange] = useState<TimeRange>("all");
+    const [personLoading, setPersonLoading] = useState(false);
+
+    useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [ordersData] = await Promise.all([
-                getAllOrdersEnriched(),
-                fetchDailyReports(),
-            ]);
+            const ordersData = await getAllOrdersEnriched();
             setOrders(ordersData);
         } catch (e) {
             console.error(e);
@@ -88,19 +94,44 @@ export default function Reports() {
         }
     };
 
-    const fetchDailyReports = async () => {
+    // When person filter changes, load that person's data
+    useEffect(() => {
+        if (!filterPerson) { setPersonData(null); setPersonTransactions([]); return; }
+        loadPersonData(filterPerson);
+    }, [filterPerson]);
+
+    const loadPersonData = async (name: string) => {
+        setPersonLoading(true);
         try {
-            const q = query(collection(db, "reports"), orderBy("date", "desc"));
-            const snap = await getDocs(q);
-            setDailyReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            // Find userId from orders
+            const personOrder = orders.find(o => o.userName === name);
+            if (!personOrder?.userId) { setPersonLoading(false); return; }
+            const userId = personOrder.userId;
+
+            // Fetch user doc
+            const usersSnap = await getDocs(query(collection(db, "users"), where("__name__", "==", userId)));
+            const userData = usersSnap.empty ? null : { id: usersSnap.docs[0].id, ...usersSnap.docs[0].data() };
+
+            // Fetch transactions
+            const txSnap = await getDocs(query(
+                collection(db, "transactions"),
+                where("userId", "==", userId),
+                orderBy("createdAt", "desc")
+            ));
+            const txs = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            setPersonData(userData);
+            setPersonTransactions(txs);
         } catch (e) {
             console.error(e);
+        } finally {
+            setPersonLoading(false);
         }
     };
 
-    // Unique persons for person dropdown (with room number)
+    // Unique persons
     const personOptions = useMemo(() => {
-        const map = new Map<string, string>(); // name -> roomNumber
+        const map = new Map<string, string>();
         orders.forEach(o => {
             if (o.userName) {
                 const room = (o as any).roomNumber || "";
@@ -119,7 +150,7 @@ export default function Reports() {
         return Array.from(slots).sort();
     }, [orders]);
 
-    // Filtered orders
+    // Filtered orders (global)
     const filteredOrders = useMemo(() => {
         return orders.filter(o => {
             if (filterPerson && o.userName !== filterPerson) return false;
@@ -130,6 +161,36 @@ export default function Reports() {
     }, [orders, filterPerson, filterDate, filterSlot]);
 
     const hasFilter = filterPerson || filterDate || filterSlot !== "all";
+
+    // Person-specific time-range cutoff
+    const personCutoff = useMemo(() => {
+        if (personTimeRange === "all") return null;
+        return startOfDay(subDays(new Date(), parseInt(personTimeRange)));
+    }, [personTimeRange]);
+
+    // Person orders filtered by time range
+    const personOrders = useMemo(() => {
+        if (!filterPerson) return [];
+        return orders.filter(o => {
+            if (o.userName !== filterPerson) return false;
+            if (personCutoff && toDate(o.createdAt) < personCutoff) return false;
+            return true;
+        });
+    }, [orders, filterPerson, personCutoff]);
+
+    // Person transactions filtered by time range
+    const personTxsFiltered = useMemo(() => {
+        if (!personCutoff) return personTransactions;
+        return personTransactions.filter(t => toDate(t.createdAt) >= personCutoff);
+    }, [personTransactions, personCutoff]);
+
+    const personTotalAdded = useMemo(() =>
+        personTxsFiltered.filter(t => t.type === "credit").reduce((s, t) => s + (Number(t.amount) || 0), 0),
+        [personTxsFiltered]);
+
+    const personTotalSpent = useMemo(() =>
+        personOrders.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0),
+        [personOrders]);
 
     // Revenue chart — last 14 days
     const revenueChartData = useMemo(() => {
@@ -180,11 +241,25 @@ export default function Reports() {
         document.body.removeChild(link);
     };
 
+    const statusColor = (status: string) =>
+        status === "completed" || status === "delivered"
+            ? { bg: "rgba(16,185,129,0.15)", text: "#10b981", border: "rgba(16,185,129,0.3)" }
+            : status === "rejected"
+            ? { bg: "rgba(239,68,68,0.15)", text: "#f87171", border: "rgba(239,68,68,0.3)" }
+            : { bg: "rgba(148,163,184,0.1)", text: "#94a3b8", border: "rgba(148,163,184,0.3)" };
+
     if (loading) return (
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "200px", color: "#94a3b8", fontSize: "15px" }}>
             Loading reports...
         </div>
     );
+
+    const timeRangeBtns: { label: string; value: TimeRange }[] = [
+        { label: "Last 7 Days", value: "7" },
+        { label: "Last 14 Days", value: "14" },
+        { label: "Last 30 Days", value: "30" },
+        { label: "Lifetime", value: "all" },
+    ];
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -208,7 +283,6 @@ export default function Reports() {
                     Filter by:
                 </div>
 
-                {/* Person */}
                 <select
                     value={filterPerson}
                     onChange={e => setFilterPerson(e.target.value)}
@@ -222,7 +296,6 @@ export default function Reports() {
                     ))}
                 </select>
 
-                {/* Date */}
                 <input
                     type="date"
                     value={filterDate}
@@ -230,7 +303,6 @@ export default function Reports() {
                     style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "#e2e8f0", fontSize: "13px", padding: "6px 10px", outline: "none", cursor: "pointer" }}
                 />
 
-                {/* Slot */}
                 <select
                     value={filterSlot}
                     onChange={e => setFilterSlot(e.target.value)}
@@ -243,7 +315,6 @@ export default function Reports() {
                     <option value="Unknown" style={{ background: "#1e293b" }}>Unknown</option>
                 </select>
 
-                {/* Clear */}
                 {hasFilter && (
                     <button
                         onClick={() => { setFilterPerson(""); setFilterDate(""); setFilterSlot("all"); }}
@@ -254,7 +325,210 @@ export default function Reports() {
                 )}
             </div>
 
-            {/* Stat Cards */}
+            {/* ── PERSON PROFILE SECTION ─────────────────────────────────── */}
+            {filterPerson && (
+                <div style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "18px", padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+                    {/* Person Header */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                        <Avatar name={filterPerson} email="" size={12} />
+                        <div style={{ flex: 1 }}>
+                            <p style={{ color: "#fff", fontSize: "18px", fontWeight: 900, margin: 0 }}>{filterPerson}</p>
+                            {personData && (
+                                <p style={{ color: "#64748b", fontSize: "13px", margin: "4px 0 0" }}>
+                                    Room: {(personData as any).roomNumber || "—"} &nbsp;·&nbsp; ID: #{(personData as any).userId || "—"}
+                                </p>
+                            )}
+                        </div>
+                        {/* Current Balance */}
+                        {personData && (
+                            <div style={{ background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "12px", padding: "12px 20px", textAlign: "center" }}>
+                                <p style={{ color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Current Balance</p>
+                                <p style={{ color: "#10b981", fontSize: "24px", fontWeight: 900, margin: "4px 0 0" }}>৳{((personData as any).balance || 0).toLocaleString()}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Time Range Filter */}
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        {timeRangeBtns.map(btn => (
+                            <button
+                                key={btn.value}
+                                onClick={() => setPersonTimeRange(btn.value)}
+                                style={{
+                                    padding: "6px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 700, cursor: "pointer", border: "1px solid",
+                                    background: personTimeRange === btn.value ? "rgba(99,102,241,0.3)" : "rgba(255,255,255,0.05)",
+                                    borderColor: personTimeRange === btn.value ? "rgba(99,102,241,0.6)" : "rgba(255,255,255,0.1)",
+                                    color: personTimeRange === btn.value ? "#a5b4fc" : "#64748b",
+                                }}
+                            >
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {personLoading ? (
+                        <p style={{ color: "#64748b", fontSize: "13px" }}>Loading person data...</p>
+                    ) : (
+                        <>
+                            {/* Summary Cards */}
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
+                                <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "12px", padding: "16px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                        <ArrowDownLeft size={16} color="#10b981" />
+                                        <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Total Added</p>
+                                    </div>
+                                    <p style={{ color: "#10b981", fontSize: "20px", fontWeight: 900, margin: 0 }}>৳{personTotalAdded.toLocaleString()}</p>
+                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Balance recharged</p>
+                                </div>
+                                <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "12px", padding: "16px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                        <ArrowUpRight size={16} color="#f87171" />
+                                        <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Total Spent</p>
+                                    </div>
+                                    <p style={{ color: "#f87171", fontSize: "20px", fontWeight: 900, margin: 0 }}>৳{personTotalSpent.toLocaleString()}</p>
+                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>On meals</p>
+                                </div>
+                                <div style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "12px", padding: "16px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                        <ShoppingBag size={16} color="#818cf8" />
+                                        <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Total Orders</p>
+                                    </div>
+                                    <p style={{ color: "#818cf8", fontSize: "20px", fontWeight: 900, margin: 0 }}>{personOrders.length}</p>
+                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Meals ordered</p>
+                                </div>
+                                <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "12px", padding: "16px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                                        <CalendarDays size={16} color="#fbbf24" />
+                                        <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Avg Per Order</p>
+                                    </div>
+                                    <p style={{ color: "#fbbf24", fontSize: "20px", fontWeight: 900, margin: 0 }}>
+                                        ৳{personOrders.length > 0 ? Math.round(personTotalSpent / personOrders.length).toLocaleString() : 0}
+                                    </p>
+                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Average cost</p>
+                                </div>
+                            </div>
+
+                            {/* Meal Order History Table */}
+                            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", overflow: "hidden" }}>
+                                <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                                    <h4 style={{ color: "#fff", fontSize: "14px", fontWeight: 800, margin: 0 }}>
+                                        🍽️ Meal History ({personOrders.length})
+                                    </h4>
+                                </div>
+                                <div style={{ overflowX: "auto" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                                        <thead>
+                                            <tr style={{ background: "rgba(255,255,255,0.03)" }}>
+                                                {["Order Date & Time", "Meal Date", "Meal", "Slot", "Amount", "Status"].map(h => (
+                                                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontWeight: 700, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {personOrders.length === 0 ? (
+                                                <tr><td colSpan={6} style={{ padding: "30px", textAlign: "center", color: "#475569", fontSize: "13px" }}>No orders in this time range.</td></tr>
+                                            ) : (
+                                                personOrders.map((order, i) => {
+                                                    const sc = statusColor(order.status || "");
+                                                    const mealDate = order.items?.[0]?.date;
+                                                    let mealDateStr = "—";
+                                                    if (mealDate) {
+                                                        const d = new Date(mealDate);
+                                                        if (!isNaN(d.getTime())) mealDateStr = format(d, "d MMM yyyy");
+                                                    }
+                                                    return (
+                                                        <tr key={order.id} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.04)" }}>
+                                                            <td style={{ padding: "10px 14px", color: "#94a3b8", whiteSpace: "nowrap", fontSize: "12px" }}>
+                                                                {formatDateBD(order.createdAt)}
+                                                            </td>
+                                                            <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                                                                <span style={{ background: "rgba(99,102,241,0.15)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.25)", borderRadius: "6px", padding: "2px 8px", fontSize: "12px", fontWeight: 700 }}>
+                                                                    {mealDateStr}
+                                                                </span>
+                                                            </td>
+                                                            <td style={{ padding: "10px 14px", color: "#e2e8f0", maxWidth: "180px" }}>
+                                                                <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                                    {order.items.map(it => `${it.name} (×${it.quantity})`).join(", ")}
+                                                                </span>
+                                                            </td>
+                                                            <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
+                                                                {getSlot(order) ? (
+                                                                    <span style={{ background: "rgba(245,158,11,0.15)", color: "#fbbf24", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "6px", padding: "2px 8px", fontSize: "11px", fontWeight: 700 }}>{getSlot(order)}</span>
+                                                                ) : <span style={{ color: "#475569" }}>—</span>}
+                                                            </td>
+                                                            <td style={{ padding: "10px 14px", color: "#10b981", fontWeight: 800, whiteSpace: "nowrap" }}>
+                                                                ৳{Number(order.totalAmount).toLocaleString()}
+                                                            </td>
+                                                            <td style={{ padding: "10px 14px" }}>
+                                                                <span style={{ background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`, borderRadius: "6px", padding: "2px 8px", fontSize: "11px", fontWeight: 700, textTransform: "capitalize", whiteSpace: "nowrap" }}>
+                                                                    {order.status || "pending"}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Balance Transaction History */}
+                            {personTxsFiltered.length > 0 && (
+                                <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", overflow: "hidden" }}>
+                                    <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                                        <h4 style={{ color: "#fff", fontSize: "14px", fontWeight: 800, margin: 0 }}>
+                                            💳 Balance Transactions ({personTxsFiltered.length})
+                                        </h4>
+                                    </div>
+                                    <div style={{ overflowX: "auto" }}>
+                                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                                            <thead>
+                                                <tr style={{ background: "rgba(255,255,255,0.03)" }}>
+                                                    {["Date", "Type", "Description", "Amount"].map(h => (
+                                                        <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: "#64748b", fontWeight: 700, fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {personTxsFiltered.map((tx, i) => {
+                                                    const isCredit = tx.type === "credit";
+                                                    return (
+                                                        <tr key={tx.id} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.04)" }}>
+                                                            <td style={{ padding: "10px 14px", color: "#94a3b8", whiteSpace: "nowrap", fontSize: "12px" }}>
+                                                                {formatDateBD(tx.createdAt)}
+                                                            </td>
+                                                            <td style={{ padding: "10px 14px" }}>
+                                                                <span style={{
+                                                                    background: isCredit ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+                                                                    color: isCredit ? "#10b981" : "#f87171",
+                                                                    border: `1px solid ${isCredit ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
+                                                                    borderRadius: "6px", padding: "2px 8px", fontSize: "11px", fontWeight: 700, textTransform: "capitalize"
+                                                                }}>
+                                                                    {isCredit ? "↑ Added" : "↓ Debit"}
+                                                                </span>
+                                                            </td>
+                                                            <td style={{ padding: "10px 14px", color: "#94a3b8", fontSize: "12px" }}>
+                                                                {tx.description || "—"}
+                                                            </td>
+                                                            <td style={{ padding: "10px 14px", color: isCredit ? "#10b981" : "#f87171", fontWeight: 800, whiteSpace: "nowrap" }}>
+                                                                {isCredit ? "+" : "-"}৳{Number(tx.amount).toLocaleString()}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* Stat Cards (overall) */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
                 <StatCard icon={DollarSign} label="Total Revenue" value={`৳${totalRevenue.toLocaleString()}`} sub="from filtered orders" color="rgba(16,185,129,0.7)" />
                 <StatCard icon={ShoppingBag} label="Total Orders" value={totalOrders.toLocaleString()} sub="across all slots" color="rgba(99,102,241,0.7)" />
@@ -331,11 +605,7 @@ export default function Reports() {
                                 </tr>
                             ) : (
                                 filteredOrders.map((order, i) => {
-                                    const statusColor =
-                                        order.status === "completed" || order.status === "delivered" ? { bg: "rgba(16,185,129,0.15)", text: "#10b981", border: "rgba(16,185,129,0.3)" } :
-                                        order.status === "rejected" ? { bg: "rgba(239,68,68,0.15)", text: "#f87171", border: "rgba(239,68,68,0.3)" } :
-                                        order.status === "hold" ? { bg: "rgba(245,158,11,0.15)", text: "#fbbf24", border: "rgba(245,158,11,0.3)" } :
-                                        { bg: "rgba(148,163,184,0.1)", text: "#94a3b8", border: "rgba(148,163,184,0.3)" };
+                                    const sc = statusColor(order.status || "");
                                     return (
                                         <tr key={order.id} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.05)" }}>
                                             <td style={{ padding: "12px 16px", color: "#94a3b8", whiteSpace: "nowrap" }}>
@@ -368,11 +638,11 @@ export default function Reports() {
                                             </td>
                                             <td style={{ padding: "12px 16px", color: "#cbd5e1", maxWidth: "200px" }}>
                                                 <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                                    {order.items.map(i => `${i.name} (${i.quantity})`).join(", ")}
+                                                    {order.items.map(it => `${it.name} (${it.quantity})`).join(", ")}
                                                 </span>
                                             </td>
                                             <td style={{ padding: "12px 16px" }}>
-                                                <span style={{ background: statusColor.bg, color: statusColor.text, border: `1px solid ${statusColor.border}`, borderRadius: "6px", padding: "2px 8px", fontSize: "11px", fontWeight: 700, textTransform: "capitalize", whiteSpace: "nowrap" }}>
+                                                <span style={{ background: sc.bg, color: sc.text, border: `1px solid ${sc.border}`, borderRadius: "6px", padding: "2px 8px", fontSize: "11px", fontWeight: 700, textTransform: "capitalize", whiteSpace: "nowrap" }}>
                                                     {order.status || "pending"}
                                                 </span>
                                             </td>
