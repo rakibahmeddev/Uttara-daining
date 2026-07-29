@@ -69,10 +69,8 @@ export default function Reports() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Global filters
+    // Global Filters
     const [filterPerson, setFilterPerson] = useState("");
-    const [filterDate, setFilterDate] = useState("");
-    const [filterSlot, setFilterSlot] = useState("all");
 
     // Person profile data
     const [personData, setPersonData] = useState<any>(null);
@@ -143,24 +141,15 @@ export default function Reports() {
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [orders]);
 
-    // Unique slots
-    const slotOptions = useMemo(() => {
-        const slots = new Set<string>();
-        orders.forEach(o => { const s = getSlot(o); if (s && s !== "Unknown") slots.add(s); });
-        return Array.from(slots).sort();
-    }, [orders]);
+    const hasFilter = !!filterPerson;
 
     // Filtered orders (global)
     const filteredOrders = useMemo(() => {
         return orders.filter(o => {
             if (filterPerson && o.userName !== filterPerson) return false;
-            if (filterDate && toDateStr(o.createdAt) !== filterDate) return false;
-            if (filterSlot !== "all" && (getSlot(o) || "—") !== filterSlot) return false;
             return true;
         });
-    }, [orders, filterPerson, filterDate, filterSlot]);
-
-    const hasFilter = filterPerson || filterDate || filterSlot !== "all";
+    }, [orders, filterPerson]);
 
     // Person-specific time-range cutoff
     const personCutoff = useMemo(() => {
@@ -296,28 +285,9 @@ export default function Reports() {
                     ))}
                 </select>
 
-                <input
-                    type="date"
-                    value={filterDate}
-                    onChange={e => setFilterDate(e.target.value)}
-                    style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "#e2e8f0", fontSize: "13px", padding: "6px 10px", outline: "none", cursor: "pointer" }}
-                />
-
-                <select
-                    value={filterSlot}
-                    onChange={e => setFilterSlot(e.target.value)}
-                    style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "#e2e8f0", fontSize: "13px", padding: "6px 10px", outline: "none", cursor: "pointer" }}
-                >
-                    <option value="all">All Slots</option>
-                    {slotOptions.map(s => (
-                        <option key={s} value={s} style={{ background: "#1e293b" }}>{s}</option>
-                    ))}
-                    <option value="Unknown" style={{ background: "#1e293b" }}>Unknown</option>
-                </select>
-
                 {hasFilter && (
                     <button
-                        onClick={() => { setFilterPerson(""); setFilterDate(""); setFilterSlot("all"); }}
+                        onClick={() => { setFilterPerson(""); }}
                         style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", color: "#f87171", fontSize: "12px", padding: "6px 10px", cursor: "pointer", fontWeight: 600 }}
                     >
                         <X size={12} /> Clear
