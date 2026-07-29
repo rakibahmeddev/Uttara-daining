@@ -43,7 +43,7 @@ import AdminCustomCSS from "./pages/admin/AdminCustomCSS";
 import AssignDelivery from "./pages/admin/AssignDelivery";
 
 // Manager Pages
-import ManagerDashboard from "./pages/manager/ManagerDashboard";
+// Manager now uses AdminDashboard for the same dashboard experience
 import ManagerUsers from "./pages/manager/ManagerUsers";
 import ManagerBalanceRequests from "./pages/manager/ManagerBalanceRequests";
 import ManagerProfile from "./pages/manager/ManagerProfile";
@@ -118,7 +118,7 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<ManagerDashboard />} />
+              <Route index element={<AdminDashboard />} />
               <Route path="order" element={<StudentHome />} />
               <Route path="auto-order" element={<AutoOrder />} />
               <Route path="meals" element={<Meals />} />
