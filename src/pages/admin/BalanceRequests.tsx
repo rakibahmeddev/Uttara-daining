@@ -141,6 +141,29 @@ export default function BalanceRequests() {
         }
     };
 
+    const handleResetAllBalance = async () => {
+        if (!confirm("⚠️ WARNING: This will set EVERY user's balance to ৳0. This action cannot be undone! Are you sure?")) return;
+        if (!confirm("FINAL CONFIRM: Set ALL user balances to ZERO?")) return;
+        setProcessing(true);
+        try {
+            const batch = writeBatch(db);
+            let count = 0;
+            users.forEach(u => {
+                if (!u.id) return;
+                const userRef = doc(db, "users", u.id);
+                batch.update(userRef, { balance: 0 });
+                count++;
+            });
+            await batch.commit();
+            alert(`✅ Successfully reset balance to ৳0 for ${count} users!`);
+        } catch (error) {
+            console.error(error);
+            alert("Failed to reset balances.");
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     const filters = ["topup", "withdraw"] as const;
 
     return (
@@ -148,14 +171,22 @@ export default function BalanceRequests() {
             title="Balance" 
             subtitle="Review student top-ups, withdrawals, and balance changes"
             action={
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <Button 
                         onClick={handleTestAddBalance} 
                         disabled={processing}
                         className="bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20 border-0"
                         style={{ padding: "8px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: 700 }}
                     >
-                        {processing ? "Adding..." : "All Balance (Test)"}
+                        {processing ? "Processing..." : "All Balance (Test)"}
+                    </Button>
+                    <Button 
+                        onClick={handleResetAllBalance} 
+                        disabled={processing}
+                        className="bg-slate-700 hover:bg-slate-600 text-white border border-red-500/40"
+                        style={{ padding: "8px 16px", borderRadius: "12px", fontSize: "13px", fontWeight: 700 }}
+                    >
+                        🔴 Reset All ৳0
                     </Button>
                     <Button 
                         onClick={() => setManageModalOpen(true)} 

@@ -304,7 +304,18 @@ export default function Reports() {
                         <Avatar name={filterPerson} email="" size={12} />
                         <div style={{ flex: 1 }}>
                             <p style={{ color: "#fff", fontSize: "20px", fontWeight: 900, margin: 0 }}>{filterPerson}</p>
-                            <p style={{ color: "#64748b", fontSize: "12px", margin: "4px 0 0" }}>Individual student report</p>
+                            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "8px" }}>
+                                {personData && (
+                                    <>
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: "6px", padding: "3px 10px", fontSize: "12px", fontWeight: 700, color: "#c4b5fd" }}>
+                                            ID: #{(personData as any).userId || "—"}
+                                        </span>
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(14,165,233,0.15)", border: "1px solid rgba(14,165,233,0.3)", borderRadius: "6px", padding: "3px 10px", fontSize: "12px", fontWeight: 700, color: "#38bdf8" }}>
+                                            Room: {(personData as any).roomNumber || "—"}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -332,20 +343,6 @@ export default function Reports() {
                         <>
                             {/* Summary Cards */}
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" }}>
-
-                                {/* ID Card */}
-                                <div style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: "12px", padding: "16px" }}>
-                                    <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: "0 0 8px" }}>Student ID</p>
-                                    <p style={{ color: "#c4b5fd", fontSize: "22px", fontWeight: 900, margin: 0 }}>#{(personData as any)?.userId || "—"}</p>
-                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Unique identifier</p>
-                                </div>
-
-                                {/* Room Card */}
-                                <div style={{ background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.25)", borderRadius: "12px", padding: "16px" }}>
-                                    <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: "0 0 8px" }}>Room No.</p>
-                                    <p style={{ color: "#38bdf8", fontSize: "22px", fontWeight: 900, margin: 0 }}>{(personData as any)?.roomNumber || "—"}</p>
-                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Assigned room</p>
-                                </div>
 
                                 {/* Balance Card */}
                                 <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "12px", padding: "16px" }}>
