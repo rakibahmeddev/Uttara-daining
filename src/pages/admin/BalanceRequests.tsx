@@ -287,6 +287,8 @@ function ManageBalanceModal({ users, onClose, currentUser }: { users: UserDoc[],
         if (!selectedUser) return;
         const amt = Number(amount);
         if (isNaN(amt) || amt <= 0) return alert("Enter a valid amount");
+        if (type === 'add' && amt < 40) return alert("Minimum add amount is ৳40");
+        if (type === 'add' && amt > 3000) return alert("Maximum add amount is ৳3000");
         if (type === 'deduct' && amt > (selectedUser.balance || 0)) return alert("Insufficient balance");
         
         setProcessing(true);
@@ -403,10 +405,13 @@ function ManageBalanceModal({ users, onClose, currentUser }: { users: UserDoc[],
                             
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", color: "#475569", marginBottom: "8px", marginLeft: "4px" }}>Amount</label>
+                                    <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", color: "#475569", marginBottom: "4px", marginLeft: "4px" }}>Amount</label>
+                                    <p style={{ fontSize: "10px", color: "#f97316", fontWeight: 600, marginBottom: "6px", marginLeft: "4px" }}>Add: min ৳40 — max ৳3,000</p>
                                     <input 
                                         type="number"
                                         placeholder="e.g. 500"
+                                        min={40}
+                                        max={3000}
                                         value={amount}
                                         onChange={e => setAmount(e.target.value)}
                                         style={{ width: "100%", backgroundColor: "#fff", border: "1px solid #e2e8f0", color: "#0f172a", borderRadius: "10px", padding: "12px 16px", fontSize: "14px", outline: "none", boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)" }}
