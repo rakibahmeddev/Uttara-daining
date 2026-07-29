@@ -127,6 +127,7 @@ function App() {
               <Route path="users" element={<ManagerUsers />} />
               <Route path="balance-requests" element={<ManagerBalanceRequests />} />
               <Route path="notifications" element={<ManagerNotifications />} />
+              <Route path="reports" element={<Reports />} />
               <Route path="profile" element={<ManagerProfile />} />
               <Route path="rider-delivery" element={<RiderDeliveryScreen />} />
             </Route>

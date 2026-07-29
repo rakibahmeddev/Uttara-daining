@@ -38,6 +38,7 @@ const MANAGER_NAV = [
     { to: "/manager/orders",           label: "Orders" },
     { to: "/manager/users",            label: "Users" },
     { to: "/manager/balance-requests", label: "Balance" },
+    { to: "/manager/reports",          label: "Reports" },
 ];
 
 const STUDENT_NAV_ICONS = [Home, Clock, Truck, Wallet, User];

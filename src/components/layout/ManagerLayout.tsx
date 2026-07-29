@@ -10,6 +10,7 @@ import {
     Bell,
     Bike,
     Zap,
+    FileText,
 } from "lucide-react";
 
 const navItems: NavItem[] = [
@@ -23,6 +24,7 @@ const navItems: NavItem[] = [
     { path: "/manager/users", label: "Users", icon: Users, color: "#10b981" },
     { path: "/manager/balance-requests", label: "Balance", icon: DollarSign, color: "#f59e0b" },
     { path: "/manager/notifications", label: "Notifications", icon: Bell, color: "#ec4899" },
+    { path: "/manager/reports", label: "Reports", icon: FileText, color: "#6366f1" },
     { path: "/manager/profile", label: "Profile", icon: User, color: "#8b5cf6" },
 ];
 
