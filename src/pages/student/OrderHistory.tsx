@@ -226,12 +226,25 @@ export default function OrderHistory() {
                                             </td>
                                             <td style={{ padding: '16px 24px' }}>
                                                 <div className="flex flex-col gap-1 min-w-[140px]">
-                                                    {order.items && order.items.map((item, idx) => (
-                                                        <div key={idx} className="text-sm text-slate-600 flex items-center justify-between">
-                                                            <span className="truncate pr-2">{item.name}</span>
-                                                            <span className="font-semibold text-slate-400 shrink-0">×{item.quantity}</span>
-                                                        </div>
-                                                    ))}
+                                                    {order.items && order.items.map((item, idx) => {
+                                                        const rawDate = item.date || order.date;
+                                                        let dateStr = "";
+                                                        if (rawDate) {
+                                                            const d = new Date(rawDate);
+                                                            if (!isNaN(d.getTime())) {
+                                                                dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                                                            }
+                                                        }
+                                                        return (
+                                                            <div key={idx} className="flex flex-col mb-1.5 last:mb-0">
+                                                                <div className="text-sm text-slate-600 flex items-center justify-between">
+                                                                    <span className="truncate pr-2 font-medium">{item.name}</span>
+                                                                    <span className="font-semibold text-slate-400 shrink-0">×{item.quantity}</span>
+                                                                </div>
+                                                                {dateStr && <span className="text-[11px] text-slate-400 font-medium">{dateStr}</span>}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </td>
                                             <td className="whitespace-nowrap text-sm font-black text-slate-800" style={{ padding: '16px 24px' }}>
