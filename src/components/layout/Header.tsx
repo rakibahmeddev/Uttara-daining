@@ -16,7 +16,7 @@ import {
 // ── Role-based nav items ──────────────────────────────────────
 const STUDENT_NAV = [
     { to: "/student",            label: "Home"    },
-    { to: "/student/history",    label: "Orders"  },
+    { to: "/student/history",    label: "Order History"  },
     { to: "/student/rider-delivery", label: "My Delivery" },
     { to: "/student/withdrawal", label: "Wallet"  },
     { to: "/student/profile",    label: "Profile" },

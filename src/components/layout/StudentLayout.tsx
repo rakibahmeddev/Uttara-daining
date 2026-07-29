@@ -9,7 +9,7 @@ import AlertsBanner from "./AlertsBanner";
 
 const NAV_ITEMS = [
     { to: "/student",            icon: Home,   label: "Home"    },
-    { to: "/student/history",    icon: Clock,  label: "Orders"  },
+    { to: "/student/history",    icon: Clock,  label: "Order History"  },
     { to: "/student/rider-delivery", icon: Truck, label: "My Delivery" },
     { to: "/student/auto-order", icon: Zap, label: "Auto Order" },
     { to: "/student/withdrawal", icon: Wallet, label: "Balance"  },
