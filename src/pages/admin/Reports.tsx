@@ -333,20 +333,9 @@ export default function Reports() {
                     <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
                         <Avatar name={filterPerson} email="" size={12} />
                         <div style={{ flex: 1 }}>
-                            <p style={{ color: "#fff", fontSize: "18px", fontWeight: 900, margin: 0 }}>{filterPerson}</p>
-                            {personData && (
-                                <p style={{ color: "#64748b", fontSize: "13px", margin: "4px 0 0" }}>
-                                    Room: {(personData as any).roomNumber || "—"} &nbsp;·&nbsp; ID: #{(personData as any).userId || "—"}
-                                </p>
-                            )}
+                            <p style={{ color: "#fff", fontSize: "20px", fontWeight: 900, margin: 0 }}>{filterPerson}</p>
+                            <p style={{ color: "#64748b", fontSize: "12px", margin: "4px 0 0" }}>Individual student report</p>
                         </div>
-                        {/* Current Balance */}
-                        {personData && (
-                            <div style={{ background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "12px", padding: "12px 20px", textAlign: "center" }}>
-                                <p style={{ color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>Current Balance</p>
-                                <p style={{ color: "#10b981", fontSize: "24px", fontWeight: 900, margin: "4px 0 0" }}>৳{((personData as any).balance || 0).toLocaleString()}</p>
-                            </div>
-                        )}
                     </div>
 
                     {/* Time Range Filter */}
@@ -372,34 +361,63 @@ export default function Reports() {
                     ) : (
                         <>
                             {/* Summary Cards */}
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
-                                <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "12px", padding: "16px" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                        <ArrowDownLeft size={16} color="#10b981" />
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" }}>
+
+                                {/* ID Card */}
+                                <div style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: "12px", padding: "16px" }}>
+                                    <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: "0 0 8px" }}>Student ID</p>
+                                    <p style={{ color: "#c4b5fd", fontSize: "22px", fontWeight: 900, margin: 0 }}>#{(personData as any)?.userId || "—"}</p>
+                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Unique identifier</p>
+                                </div>
+
+                                {/* Room Card */}
+                                <div style={{ background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.25)", borderRadius: "12px", padding: "16px" }}>
+                                    <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: "0 0 8px" }}>Room No.</p>
+                                    <p style={{ color: "#38bdf8", fontSize: "22px", fontWeight: 900, margin: 0 }}>{(personData as any)?.roomNumber || "—"}</p>
+                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Assigned room</p>
+                                </div>
+
+                                {/* Balance Card */}
+                                <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "12px", padding: "16px" }}>
+                                    <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: "0 0 8px" }}>Current Balance</p>
+                                    <p style={{ color: "#10b981", fontSize: "22px", fontWeight: 900, margin: 0 }}>৳{((personData as any)?.balance || 0).toLocaleString()}</p>
+                                    <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Available balance</p>
+                                </div>
+
+                                {/* Total Added */}
+                                <div style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.18)", borderRadius: "12px", padding: "16px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+                                        <ArrowDownLeft size={14} color="#10b981" />
                                         <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Total Added</p>
                                     </div>
                                     <p style={{ color: "#10b981", fontSize: "20px", fontWeight: 900, margin: 0 }}>৳{personTotalAdded.toLocaleString()}</p>
                                     <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Balance recharged</p>
                                 </div>
+
+                                {/* Total Spent */}
                                 <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "12px", padding: "16px" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                        <ArrowUpRight size={16} color="#f87171" />
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+                                        <ArrowUpRight size={14} color="#f87171" />
                                         <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Total Spent</p>
                                     </div>
                                     <p style={{ color: "#f87171", fontSize: "20px", fontWeight: 900, margin: 0 }}>৳{personTotalSpent.toLocaleString()}</p>
                                     <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>On meals</p>
                                 </div>
+
+                                {/* Total Orders */}
                                 <div style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "12px", padding: "16px" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                        <ShoppingBag size={16} color="#818cf8" />
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+                                        <ShoppingBag size={14} color="#818cf8" />
                                         <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Total Orders</p>
                                     </div>
                                     <p style={{ color: "#818cf8", fontSize: "20px", fontWeight: 900, margin: 0 }}>{personOrders.length}</p>
                                     <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Meals ordered</p>
                                 </div>
+
+                                {/* Avg Per Order */}
                                 <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "12px", padding: "16px" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                                        <CalendarDays size={16} color="#fbbf24" />
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+                                        <CalendarDays size={14} color="#fbbf24" />
                                         <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Avg Per Order</p>
                                     </div>
                                     <p style={{ color: "#fbbf24", fontSize: "20px", fontWeight: 900, margin: 0 }}>
@@ -407,6 +425,7 @@ export default function Reports() {
                                     </p>
                                     <p style={{ color: "#475569", fontSize: "11px", margin: "2px 0 0" }}>Average cost</p>
                                 </div>
+
                             </div>
 
                             {/* Meal Order History Table */}
