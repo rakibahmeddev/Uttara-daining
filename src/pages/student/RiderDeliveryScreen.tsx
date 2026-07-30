@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { collection, onSnapshot, query, doc, updateDoc, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { placeOrder } from '../../services/db';
+import { placeOrder, getMeals } from '../../services/db';
 import type { Order } from '../../types';
 
 interface GuestOrderModal {
@@ -149,12 +149,13 @@ export default function RiderDeliveryScreen() {
     setPaymentMethod('balance');
 
     try {
-      const [usersSnap, mealsSnap] = await Promise.all([
+      const [usersSnap, mealsData] = await Promise.all([
         getDocs(query(collection(db, 'users'), orderBy('userId', 'asc'))),
-        getDocs(query(collection(db, 'meals'))),
+        getMeals(),
       ]);
       setAllUsers(usersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setTodayMeals(mealsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      // Only show available meals for quick order
+      setTodayMeals(mealsData.filter(m => m.available));
     } catch (err) {
       console.error('Failed to load users/meals', err);
     }
