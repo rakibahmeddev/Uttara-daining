@@ -14,41 +14,53 @@ const toDate = (ts: any): Date => {
     return ts?.toDate ? ts.toDate() : new Date(ts);
 };
 
-const txBadge = (isCredit: boolean) => ({
-    background: isCredit ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
-    color:      isCredit ? "#10b981"               : "#f87171",
-    border:     `1px solid ${isCredit ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
-});
-
-const orderBadge = (status: string) =>
-    status === "completed" || status === "delivered"
-        ? { background: "rgba(16,185,129,0.15)", color: "#10b981", border: "1px solid rgba(16,185,129,0.3)" }
-        : status === "rejected"
-        ? { background: "rgba(239,68,68,0.15)",  color: "#f87171", border: "1px solid rgba(239,68,68,0.3)"  }
-        : { background: "rgba(148,163,184,0.1)", color: "#94a3b8", border: "1px solid rgba(148,163,184,0.3)" };
-
 type TimeRange = "7" | "30" | "all";
 
 // ── SummaryCard ─────────────────────────────────────────────────────────────────
 interface CardProps {
-    icon: any; label: string; value: string; sub: string;
-    iconColor: string; bg: string; border: string; valueColor: string;
+    icon: any;
+    label: string;
+    value: string;
+    sub: string;
+    iconColor: string;
+    iconBg: string;
+    valueColor: string;
 }
-function SummaryCard({ icon: Icon, label, value, sub, iconColor, bg, border, valueColor }: CardProps) {
+function SummaryCard({ icon: Icon, label, value, sub, iconColor, iconBg, valueColor }: CardProps) {
     return (
-        <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: "16px", padding: "20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <div style={{ background: `${iconColor}25`, borderRadius: "8px", padding: "6px", display: "flex" }}>
-                    <Icon size={15} color={iconColor} />
+        <div style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "16px",
+            padding: "20px 18px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                <div style={{
+                    background: iconBg,
+                    borderRadius: "10px",
+                    padding: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}>
+                    <Icon size={16} color={iconColor} />
                 </div>
-                <p style={{ color: "#94a3b8", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", margin: 0 }}>
+                <p style={{
+                    color: "#64748b",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    margin: 0,
+                }}>
                     {label}
                 </p>
             </div>
-            <p style={{ color: valueColor, fontSize: "26px", fontWeight: 900, margin: "0 0 6px", lineHeight: 1.1 }}>
+            <p style={{ color: valueColor, fontSize: "26px", fontWeight: 900, margin: "0 0 6px", lineHeight: 1 }}>
                 {value}
             </p>
-            <p style={{ color: "#64748b", fontSize: "12px", margin: 0, fontWeight: 500 }}>
+            <p style={{ color: "#94a3b8", fontSize: "12px", margin: 0, fontWeight: 500 }}>
                 {sub}
             </p>
         </div>
@@ -90,7 +102,6 @@ export default function StudentReports() {
         })();
     }, [currentUser?.uid]);
 
-    // ── Filtered data based on selected time range ─────────────────────────────
     const cutoff = useMemo(() =>
         timeRange === "all" ? null : startOfDay(subDays(new Date(), parseInt(timeRange))),
         [timeRange]);
@@ -103,7 +114,6 @@ export default function StudentReports() {
         cutoff ? txs.filter(t => toDate(t.createdAt) >= cutoff!) : txs,
         [txs, cutoff]);
 
-    // ── Summary numbers ────────────────────────────────────────────────────────
     const mealCost    = filteredOrders.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
     const totalAdded  = filteredTxs.filter(t => t.type === "credit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const totalDeduct = filteredTxs.filter(t => t.type === "debit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
@@ -115,25 +125,28 @@ export default function StudentReports() {
     ];
 
     if (loading) return (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "260px", color: "#94a3b8", fontSize: "15px" }}>
-            Loading your report…
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "260px" }}>
+            <div>
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mx-auto mb-3" />
+                <p className="text-slate-400 text-sm font-medium text-center">Loading your report…</p>
+            </div>
         </div>
     );
 
     return (
-        <div style={{ paddingTop: "24px", paddingBottom: "48px", display: "flex", flexDirection: "column", gap: "28px" }}>
+        <div style={{ paddingTop: "24px", paddingBottom: "48px", display: "flex", flexDirection: "column", gap: "24px" }}>
 
-            {/* ── Page Header ─────────────────────────────────────────────────── */}
-            <div style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", paddingBottom: "18px" }}>
-                <h2 style={{ fontSize: "22px", fontWeight: 900, color: "#f1f5f9", margin: "0 0 6px" }}>
+            {/* ── Page Header ── */}
+            <div style={{ marginBottom: "4px" }}>
+                <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#0f172a", margin: "0 0 6px" }}>
                     My Reports
-                </h2>
-                <p style={{ color: "#64748b", fontSize: "13px", lineHeight: 1.5, margin: 0 }}>
+                </h1>
+                <p style={{ color: "#64748b", fontSize: "13px", margin: 0 }}>
                     আপনার ব্যালেন্স ও খরচের সারসংক্ষেপ
                 </p>
             </div>
 
-            {/* ── Time Range Buttons ───────────────────────────────────────────── */}
+            {/* ── Time Range Buttons ── */}
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 {timeRangeBtns.map(btn => {
                     const active = timeRange === btn.value;
@@ -142,15 +155,16 @@ export default function StudentReports() {
                             key={btn.value}
                             onClick={() => setTimeRange(btn.value)}
                             style={{
-                                padding: "9px 20px",
+                                padding: "8px 18px",
                                 borderRadius: "10px",
                                 fontSize: "13px",
                                 fontWeight: 700,
                                 cursor: "pointer",
                                 border: "1px solid",
-                                background:  active ? "rgba(249,115,22,0.18)" : "rgba(255,255,255,0.05)",
-                                borderColor: active ? "#f97316"               : "rgba(255,255,255,0.1)",
-                                color:       active ? "#fb923c"               : "#94a3b8",
+                                background:   active ? "#fff7ed"    : "#ffffff",
+                                borderColor:  active ? "#f97316"    : "#e2e8f0",
+                                color:        active ? "#ea580c"    : "#64748b",
+                                boxShadow:    active ? "0 0 0 1px #f97316" : "0 1px 2px rgba(0,0,0,0.05)",
                             }}
                         >
                             {btn.label}
@@ -159,94 +173,72 @@ export default function StudentReports() {
                 })}
             </div>
 
-            {/* ── Summary Cards ────────────────────────────────────────────────── */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: "14px" }}>
-
-                {/* Always shows live balance from Firestore */}
+            {/* ── Summary Cards ── */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" }}>
                 <SummaryCard
                     icon={Wallet}
                     label="Current Balance"
                     value={`৳${(userData?.balance || 0).toLocaleString()}`}
                     sub="Available in wallet"
-                    iconColor="#10b981"
-                    bg="rgba(16,185,129,0.07)"
-                    border="rgba(16,185,129,0.2)"
-                    valueColor="#10b981"
+                    iconColor="#059669"
+                    iconBg="#d1fae5"
+                    valueColor="#059669"
                 />
-
-                {/* Dynamic — filtered by selected time range */}
                 <SummaryCard
                     icon={UtensilsCrossed}
                     label="Meal Cost"
                     value={`৳${mealCost.toLocaleString()}`}
                     sub="Total food expense"
-                    iconColor="#f87171"
-                    bg="rgba(239,68,68,0.07)"
-                    border="rgba(239,68,68,0.2)"
-                    valueColor="#f87171"
+                    iconColor="#dc2626"
+                    iconBg="#fee2e2"
+                    valueColor="#dc2626"
                 />
-
                 <SummaryCard
                     icon={ArrowDownLeft}
                     label="Balance Added"
                     value={`৳${totalAdded.toLocaleString()}`}
                     sub="Recharged to wallet"
-                    iconColor="#818cf8"
-                    bg="rgba(99,102,241,0.07)"
-                    border="rgba(99,102,241,0.2)"
-                    valueColor="#818cf8"
+                    iconColor="#7c3aed"
+                    iconBg="#ede9fe"
+                    valueColor="#7c3aed"
                 />
-
                 <SummaryCard
                     icon={ArrowUpRight}
                     label="Withdrawals"
                     value={`৳${totalDeduct.toLocaleString()}`}
                     sub="Deducted from wallet"
-                    iconColor="#38bdf8"
-                    bg="rgba(14,165,233,0.07)"
-                    border="rgba(14,165,233,0.2)"
-                    valueColor="#38bdf8"
+                    iconColor="#0284c7"
+                    iconBg="#e0f2fe"
+                    valueColor="#0284c7"
                 />
-
                 <SummaryCard
                     icon={ShoppingBag}
                     label="Total Orders"
                     value={String(filteredOrders.length)}
                     sub="Meals ordered"
-                    iconColor="#34d399"
-                    bg="rgba(16,185,129,0.06)"
-                    border="rgba(16,185,129,0.18)"
-                    valueColor="#34d399"
+                    iconColor="#d97706"
+                    iconBg="#fef3c7"
+                    valueColor="#d97706"
                 />
             </div>
 
-            {/* ── Meal History Table ────────────────────────────────────────────── */}
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
-
-                <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <h3 style={{ color: "#f1f5f9", fontSize: "14px", fontWeight: 800, margin: 0 }}>
+            {/* ── Meal History Table ── */}
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <h3 style={{ color: "#0f172a", fontSize: "15px", fontWeight: 800, margin: 0 }}>
                         🍽️ Meal History
                     </h3>
-                    <span style={{ color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+                    <span style={{ color: "#94a3b8", fontSize: "12px", fontWeight: 600 }}>
                         {filteredOrders.length} orders
                     </span>
                 </div>
 
                 <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "520px" }}>
                         <thead>
-                            <tr style={{ background: "rgba(255,255,255,0.02)" }}>
+                            <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                                 {["Order Date", "Meal Date", "Items", "Amount", "Status"].map(h => (
-                                    <th key={h} style={{
-                                        padding: "11px 18px",
-                                        textAlign: "left",
-                                        color: "#64748b",
-                                        fontSize: "11px",
-                                        fontWeight: 700,
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.07em",
-                                        whiteSpace: "nowrap",
-                                    }}>
+                                    <th key={h} style={{ padding: "11px 18px", textAlign: "left", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
                                         {h}
                                     </th>
                                 ))}
@@ -255,37 +247,43 @@ export default function StudentReports() {
                         <tbody>
                             {filteredOrders.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#475569", fontSize: "13px" }}>
+                                    <td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>
                                         No orders in this period.
                                     </td>
                                 </tr>
                             ) : filteredOrders.map((order, i) => {
-                                const sc = orderBadge(order.status || "");
                                 const rawDate = order.items?.[0]?.date;
                                 const mealDateStr = rawDate && !isNaN(new Date(rawDate).getTime())
-                                    ? format(new Date(rawDate), "d MMM yyyy")
-                                    : "—";
+                                    ? format(new Date(rawDate), "d MMM yyyy") : "—";
+                                const status = order.status || "pending";
+                                const isOk = status === "completed" || status === "delivered";
+                                const isRej = status === "rejected";
+                                const statusStyle = isOk
+                                    ? { background: "#d1fae5", color: "#065f46", border: "1px solid #6ee7b7" }
+                                    : isRej
+                                    ? { background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5" }
+                                    : { background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" };
                                 return (
-                                    <tr key={order.id} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.04)" }}>
-                                        <td style={{ padding: "12px 18px", color: "#94a3b8", fontSize: "12px", whiteSpace: "nowrap" }}>
+                                    <tr key={order.id} style={{ borderTop: i === 0 ? "none" : "1px solid #f1f5f9" }}>
+                                        <td style={{ padding: "12px 18px", color: "#64748b", fontSize: "12px", whiteSpace: "nowrap" }}>
                                             {formatDateBD(order.createdAt)}
                                         </td>
                                         <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
-                                            <span style={{ background: "rgba(99,102,241,0.15)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.25)", borderRadius: "6px", padding: "3px 10px", fontSize: "11px", fontWeight: 700 }}>
+                                            <span style={{ background: "#ede9fe", color: "#6d28d9", border: "1px solid #c4b5fd", borderRadius: "6px", padding: "2px 10px", fontSize: "11px", fontWeight: 700 }}>
                                                 {mealDateStr}
                                             </span>
                                         </td>
-                                        <td style={{ padding: "12px 18px", color: "#cbd5e1", maxWidth: "170px" }}>
+                                        <td style={{ padding: "12px 18px", color: "#334155", maxWidth: "160px" }}>
                                             <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "13px" }}>
                                                 {order.items.map(it => `${it.name} ×${it.quantity}`).join(", ")}
                                             </span>
                                         </td>
-                                        <td style={{ padding: "12px 18px", color: "#f87171", fontWeight: 800, whiteSpace: "nowrap", fontSize: "14px" }}>
+                                        <td style={{ padding: "12px 18px", color: "#dc2626", fontWeight: 800, whiteSpace: "nowrap", fontSize: "14px" }}>
                                             ৳{Number(order.totalAmount).toLocaleString()}
                                         </td>
                                         <td style={{ padding: "12px 18px" }}>
-                                            <span style={{ ...sc, borderRadius: "6px", padding: "3px 10px", fontSize: "11px", fontWeight: 700, textTransform: "capitalize", whiteSpace: "nowrap" }}>
-                                                {order.status || "pending"}
+                                            <span style={{ ...statusStyle, borderRadius: "6px", padding: "3px 10px", fontSize: "11px", fontWeight: 700, textTransform: "capitalize", whiteSpace: "nowrap" }}>
+                                                {status}
                                             </span>
                                         </td>
                                     </tr>
@@ -296,34 +294,24 @@ export default function StudentReports() {
                 </div>
             </div>
 
-            {/* ── Transaction History Table ─────────────────────────────────────── */}
+            {/* ── Transaction History Table ── */}
             {filteredTxs.length > 0 && (
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden" }}>
-
-                    <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <h3 style={{ color: "#f1f5f9", fontSize: "14px", fontWeight: 800, margin: 0 }}>
+                <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                    <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <h3 style={{ color: "#0f172a", fontSize: "15px", fontWeight: 800, margin: 0 }}>
                             💳 Transaction History
                         </h3>
-                        <span style={{ color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+                        <span style={{ color: "#94a3b8", fontSize: "12px", fontWeight: 600 }}>
                             {filteredTxs.length} records
                         </span>
                     </div>
 
                     <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "440px" }}>
                             <thead>
-                                <tr style={{ background: "rgba(255,255,255,0.02)" }}>
+                                <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                                     {["Date", "Type", "Description", "Amount"].map(h => (
-                                        <th key={h} style={{
-                                            padding: "11px 18px",
-                                            textAlign: "left",
-                                            color: "#64748b",
-                                            fontSize: "11px",
-                                            fontWeight: 700,
-                                            textTransform: "uppercase",
-                                            letterSpacing: "0.07em",
-                                            whiteSpace: "nowrap",
-                                        }}>
+                                        <th key={h} style={{ padding: "11px 18px", textAlign: "left", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
                                             {h}
                                         </th>
                                     ))}
@@ -332,21 +320,25 @@ export default function StudentReports() {
                             <tbody>
                                 {filteredTxs.map((tx, i) => {
                                     const isCredit = tx.type === "credit";
-                                    const badge = txBadge(isCredit);
                                     return (
-                                        <tr key={tx.id} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.04)" }}>
-                                            <td style={{ padding: "12px 18px", color: "#94a3b8", fontSize: "12px", whiteSpace: "nowrap" }}>
+                                        <tr key={tx.id} style={{ borderTop: i === 0 ? "none" : "1px solid #f1f5f9" }}>
+                                            <td style={{ padding: "12px 18px", color: "#64748b", fontSize: "12px", whiteSpace: "nowrap" }}>
                                                 {formatDateBD(tx.createdAt)}
                                             </td>
                                             <td style={{ padding: "12px 18px" }}>
-                                                <span style={{ ...badge, borderRadius: "6px", padding: "3px 10px", fontSize: "11px", fontWeight: 700 }}>
+                                                <span style={{
+                                                    background: isCredit ? "#d1fae5" : "#fee2e2",
+                                                    color:      isCredit ? "#065f46" : "#991b1b",
+                                                    border:     `1px solid ${isCredit ? "#6ee7b7" : "#fca5a5"}`,
+                                                    borderRadius: "6px", padding: "3px 10px", fontSize: "11px", fontWeight: 700,
+                                                }}>
                                                     {isCredit ? "↑ Added" : "↓ Deducted"}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: "12px 18px", color: "#94a3b8", fontSize: "13px" }}>
+                                            <td style={{ padding: "12px 18px", color: "#475569", fontSize: "13px" }}>
                                                 {tx.description || "—"}
                                             </td>
-                                            <td style={{ padding: "12px 18px", color: isCredit ? "#10b981" : "#f87171", fontWeight: 800, whiteSpace: "nowrap", fontSize: "14px" }}>
+                                            <td style={{ padding: "12px 18px", color: isCredit ? "#059669" : "#dc2626", fontWeight: 800, whiteSpace: "nowrap", fontSize: "14px" }}>
                                                 {isCredit ? "+" : "−"}৳{Number(tx.amount).toLocaleString()}
                                             </td>
                                         </tr>
