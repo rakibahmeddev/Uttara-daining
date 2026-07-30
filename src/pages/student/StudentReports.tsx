@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useAuth } from "../../context/AuthContext";
 import { format, subDays, startOfDay } from "date-fns";
@@ -35,24 +35,10 @@ function SummaryCard({ icon: Icon, label, value, sub, iconColor, iconBg, valueCo
             boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
         }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
-                <div style={{
-                    background: iconBg,
-                    borderRadius: "10px",
-                    padding: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}>
+                <div style={{ background: iconBg, borderRadius: "10px", padding: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon size={16} color={iconColor} />
                 </div>
-                <p style={{
-                    color: "#64748b",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    margin: 0,
-                }}>
+                <p style={{ color: "#64748b", fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>
                     {label}
                 </p>
             </div>
@@ -70,60 +56,54 @@ function SummaryCard({ icon: Icon, label, value, sub, iconColor, iconBg, valueCo
 export default function StudentReports() {
     const { currentUser } = useAuth();
 
-    const [orders, setOrders]       = useState<Order[]>([]);
+    const [orders, setOrders]       = useState<any[]>([]);
     const [txs, setTxs]             = useState<any[]>([]);
-    const [userData, setUserData]   = useState<any>(null);
     const [loading, setLoading]     = useState(true);
     const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
+    // ── Real-time listeners — same approach as WithdrawalRequest.tsx ──────────
     useEffect(() => {
         if (!currentUser?.uid) return;
-        (async () => {
-            setLoading(true);
-            try {
-                const uid = currentUser.uid;
-                const [orderSnap, txSnap, userSnap] = await Promise.all([
-                    // Query orders directly for this user
-                    getDocs(query(
-                        collection(db, "orders"),
-                        where("userId", "==", uid),
-                        orderBy("createdAt", "desc")
-                    )),
-                    // Query transactions for this user
-                    getDocs(query(
-                        collection(db, "transactions"),
-                        where("userId", "==", uid),
-                        orderBy("createdAt", "desc")
-                    )),
-                    // Query user doc for live balance
-                    getDocs(query(collection(db, "users"), where("uid", "==", uid))),
-                ]);
-                setOrders(orderSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
-                setTxs(txSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-                if (!userSnap.empty) setUserData({ id: userSnap.docs[0].id, ...userSnap.docs[0].data() });
-            } catch (e) {
-                console.error("StudentReports fetch error:", e);
-            } finally {
+        const uid = currentUser.uid;
+
+        const unsubOrders = onSnapshot(
+            query(collection(db, "orders"), where("userId", "==", uid)),
+            (snap) => {
+                setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                 setLoading(false);
-            }
-        })();
+            },
+            (err) => { console.error("orders:", err); setLoading(false); }
+        );
+
+        const unsubTx = onSnapshot(
+            query(collection(db, "transactions"), where("userId", "==", uid)),
+            (snap) => setTxs(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+            (err) => console.error("transactions:", err)
+        );
+
+        return () => { unsubOrders(); unsubTx(); };
     }, [currentUser?.uid]);
 
+    // ── Time range filter ─────────────────────────────────────────────────────
     const cutoff = useMemo(() =>
         timeRange === "all" ? null : startOfDay(subDays(new Date(), parseInt(timeRange))),
         [timeRange]);
 
     const filteredOrders = useMemo(() =>
-        cutoff ? orders.filter(o => toDate(o.createdAt) >= cutoff!) : orders,
+        (cutoff ? orders.filter(o => toDate(o.createdAt) >= cutoff!) : orders)
+            .sort((a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime()),
         [orders, cutoff]);
 
     const filteredTxs = useMemo(() =>
-        cutoff ? txs.filter(t => toDate(t.createdAt) >= cutoff!) : txs,
+        (cutoff ? txs.filter(t => toDate(t.createdAt) >= cutoff!) : txs)
+            .sort((a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime()),
         [txs, cutoff]);
 
+    // ── Computed summary numbers ──────────────────────────────────────────────
     const mealCost    = filteredOrders.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
     const totalAdded  = filteredTxs.filter(t => t.type === "credit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const totalDeduct = filteredTxs.filter(t => t.type === "debit").reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const totalDeduct = filteredTxs.filter(t => t.type === "debit" && t.description !== "Order Payment")
+                                   .reduce((s, t) => s + (Number(t.amount) || 0), 0);
 
     const timeRangeBtns: { label: string; value: TimeRange }[] = [
         { label: "Last 7 Days",  value: "7"   },
@@ -144,7 +124,7 @@ export default function StudentReports() {
         <div style={{ paddingTop: "24px", paddingBottom: "48px", paddingLeft: "16px", paddingRight: "16px", display: "flex", flexDirection: "column", gap: "24px" }}>
 
             {/* ── Page Header ── */}
-            <div style={{ marginBottom: "4px" }}>
+            <div>
                 <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#0f172a", margin: "0 0 6px" }}>
                     My Reports
                 </h1>
@@ -168,10 +148,10 @@ export default function StudentReports() {
                                 fontWeight: 700,
                                 cursor: "pointer",
                                 border: "1px solid",
-                                background:   active ? "#fff7ed"    : "#ffffff",
-                                borderColor:  active ? "#f97316"    : "#e2e8f0",
-                                color:        active ? "#ea580c"    : "#64748b",
-                                boxShadow:    active ? "0 0 0 1px #f97316" : "0 1px 2px rgba(0,0,0,0.05)",
+                                background:  active ? "#fff7ed" : "#ffffff",
+                                borderColor: active ? "#f97316" : "#e2e8f0",
+                                color:       active ? "#ea580c" : "#64748b",
+                                boxShadow:   active ? "0 0 0 1px #f97316" : "0 1px 2px rgba(0,0,0,0.05)",
                             }}
                         >
                             {btn.label}
@@ -180,17 +160,21 @@ export default function StudentReports() {
                 })}
             </div>
 
-            {/* ── Summary Cards ── */}
+            {/* ── Summary Cards (2 column) ── */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+
+                {/* Current balance — from AuthContext (live) */}
                 <SummaryCard
                     icon={Wallet}
                     label="Current Balance"
-                    value={`৳${(userData?.balance || 0).toLocaleString()}`}
+                    value={`৳${(currentUser?.balance || 0).toLocaleString()}`}
                     sub="Available in wallet"
                     iconColor="#059669"
                     iconBg="#d1fae5"
                     valueColor="#059669"
                 />
+
+                {/* Meal cost — filtered */}
                 <SummaryCard
                     icon={UtensilsCrossed}
                     label="Meal Cost"
@@ -200,6 +184,8 @@ export default function StudentReports() {
                     iconBg="#fee2e2"
                     valueColor="#dc2626"
                 />
+
+                {/* Balance added — filtered */}
                 <SummaryCard
                     icon={ArrowDownLeft}
                     label="Balance Added"
@@ -209,6 +195,8 @@ export default function StudentReports() {
                     iconBg="#ede9fe"
                     valueColor="#7c3aed"
                 />
+
+                {/* Withdrawals — filtered */}
                 <SummaryCard
                     icon={ArrowUpRight}
                     label="Withdrawals"
@@ -218,6 +206,8 @@ export default function StudentReports() {
                     iconBg="#e0f2fe"
                     valueColor="#0284c7"
                 />
+
+                {/* Total orders — filtered */}
                 <SummaryCard
                     icon={ShoppingBag}
                     label="Total Orders"
@@ -232,20 +222,15 @@ export default function StudentReports() {
             {/* ── Meal History Table ── */}
             <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
                 <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <h3 style={{ color: "#0f172a", fontSize: "15px", fontWeight: 800, margin: 0 }}>
-                        🍽️ Meal History
-                    </h3>
-                    <span style={{ color: "#94a3b8", fontSize: "12px", fontWeight: 600 }}>
-                        {filteredOrders.length} orders
-                    </span>
+                    <h3 style={{ color: "#0f172a", fontSize: "15px", fontWeight: 800, margin: 0 }}>🍽️ Meal History</h3>
+                    <span style={{ color: "#94a3b8", fontSize: "12px", fontWeight: 600 }}>{filteredOrders.length} orders</span>
                 </div>
-
                 <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "520px" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "480px" }}>
                         <thead>
                             <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                                 {["Order Date", "Meal Date", "Items", "Amount", "Status"].map(h => (
-                                    <th key={h} style={{ padding: "11px 18px", textAlign: "left", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                                    <th key={h} style={{ padding: "11px 16px", textAlign: "left", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
                                         {h}
                                     </th>
                                 ))}
@@ -253,43 +238,39 @@ export default function StudentReports() {
                         </thead>
                         <tbody>
                             {filteredOrders.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>
-                                        No orders in this period.
-                                    </td>
-                                </tr>
+                                <tr><td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>No orders in this period.</td></tr>
                             ) : filteredOrders.map((order, i) => {
                                 const rawDate = order.items?.[0]?.date;
                                 const mealDateStr = rawDate && !isNaN(new Date(rawDate).getTime())
                                     ? format(new Date(rawDate), "d MMM yyyy") : "—";
                                 const status = order.status || "pending";
-                                const isOk = status === "completed" || status === "delivered";
+                                const isOk  = status === "completed" || status === "delivered";
                                 const isRej = status === "rejected";
-                                const statusStyle = isOk
+                                const sc = isOk
                                     ? { background: "#d1fae5", color: "#065f46", border: "1px solid #6ee7b7" }
                                     : isRej
                                     ? { background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5" }
                                     : { background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" };
                                 return (
                                     <tr key={order.id} style={{ borderTop: i === 0 ? "none" : "1px solid #f1f5f9" }}>
-                                        <td style={{ padding: "12px 18px", color: "#64748b", fontSize: "12px", whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: "12px 16px", color: "#64748b", fontSize: "12px", whiteSpace: "nowrap" }}>
                                             {formatDateBD(order.createdAt)}
                                         </td>
-                                        <td style={{ padding: "12px 18px", whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
                                             <span style={{ background: "#ede9fe", color: "#6d28d9", border: "1px solid #c4b5fd", borderRadius: "6px", padding: "2px 10px", fontSize: "11px", fontWeight: 700 }}>
                                                 {mealDateStr}
                                             </span>
                                         </td>
-                                        <td style={{ padding: "12px 18px", color: "#334155", maxWidth: "160px" }}>
+                                        <td style={{ padding: "12px 16px", color: "#334155", maxWidth: "160px" }}>
                                             <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "13px" }}>
-                                                {order.items.map(it => `${it.name} ×${it.quantity}`).join(", ")}
+                                                {(order.items || []).map((it: any) => `${it.name} ×${it.quantity}`).join(", ")}
                                             </span>
                                         </td>
-                                        <td style={{ padding: "12px 18px", color: "#dc2626", fontWeight: 800, whiteSpace: "nowrap", fontSize: "14px" }}>
+                                        <td style={{ padding: "12px 16px", color: "#dc2626", fontWeight: 800, whiteSpace: "nowrap", fontSize: "14px" }}>
                                             ৳{Number(order.totalAmount).toLocaleString()}
                                         </td>
-                                        <td style={{ padding: "12px 18px" }}>
-                                            <span style={{ ...statusStyle, borderRadius: "6px", padding: "3px 10px", fontSize: "11px", fontWeight: 700, textTransform: "capitalize", whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: "12px 16px" }}>
+                                            <span style={{ ...sc, borderRadius: "6px", padding: "3px 10px", fontSize: "11px", fontWeight: 700, textTransform: "capitalize", whiteSpace: "nowrap" }}>
                                                 {status}
                                             </span>
                                         </td>
@@ -305,20 +286,15 @@ export default function StudentReports() {
             {filteredTxs.length > 0 && (
                 <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
                     <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <h3 style={{ color: "#0f172a", fontSize: "15px", fontWeight: 800, margin: 0 }}>
-                            💳 Transaction History
-                        </h3>
-                        <span style={{ color: "#94a3b8", fontSize: "12px", fontWeight: 600 }}>
-                            {filteredTxs.length} records
-                        </span>
+                        <h3 style={{ color: "#0f172a", fontSize: "15px", fontWeight: 800, margin: 0 }}>💳 Transaction History</h3>
+                        <span style={{ color: "#94a3b8", fontSize: "12px", fontWeight: 600 }}>{filteredTxs.length} records</span>
                     </div>
-
                     <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "440px" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "400px" }}>
                             <thead>
                                 <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                                     {["Date", "Type", "Description", "Amount"].map(h => (
-                                        <th key={h} style={{ padding: "11px 18px", textAlign: "left", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                                        <th key={h} style={{ padding: "11px 16px", textAlign: "left", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
                                             {h}
                                         </th>
                                     ))}
@@ -329,10 +305,10 @@ export default function StudentReports() {
                                     const isCredit = tx.type === "credit";
                                     return (
                                         <tr key={tx.id} style={{ borderTop: i === 0 ? "none" : "1px solid #f1f5f9" }}>
-                                            <td style={{ padding: "12px 18px", color: "#64748b", fontSize: "12px", whiteSpace: "nowrap" }}>
+                                            <td style={{ padding: "12px 16px", color: "#64748b", fontSize: "12px", whiteSpace: "nowrap" }}>
                                                 {formatDateBD(tx.createdAt)}
                                             </td>
-                                            <td style={{ padding: "12px 18px" }}>
+                                            <td style={{ padding: "12px 16px" }}>
                                                 <span style={{
                                                     background: isCredit ? "#d1fae5" : "#fee2e2",
                                                     color:      isCredit ? "#065f46" : "#991b1b",
@@ -342,10 +318,10 @@ export default function StudentReports() {
                                                     {isCredit ? "↑ Added" : "↓ Deducted"}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: "12px 18px", color: "#475569", fontSize: "13px" }}>
+                                            <td style={{ padding: "12px 16px", color: "#475569", fontSize: "13px" }}>
                                                 {tx.description || "—"}
                                             </td>
-                                            <td style={{ padding: "12px 18px", color: isCredit ? "#059669" : "#dc2626", fontWeight: 800, whiteSpace: "nowrap", fontSize: "14px" }}>
+                                            <td style={{ padding: "12px 16px", color: isCredit ? "#059669" : "#dc2626", fontWeight: 800, whiteSpace: "nowrap", fontSize: "14px" }}>
                                                 {isCredit ? "+" : "−"}৳{Number(tx.amount).toLocaleString()}
                                             </td>
                                         </tr>
