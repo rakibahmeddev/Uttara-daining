@@ -308,12 +308,19 @@ export default function StudentReports() {
                                             <td style={{ padding: "12px 16px", color: "#64748b", fontSize: "12px", whiteSpace: "nowrap" }}>
                                                 {formatDateBD(tx.createdAt)}
                                             </td>
-                                            <td style={{ padding: "12px 16px" }}>
+                                            <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
                                                 <span style={{
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    gap: "4px",
                                                     background: isCredit ? "#d1fae5" : "#fee2e2",
                                                     color:      isCredit ? "#065f46" : "#991b1b",
                                                     border:     `1px solid ${isCredit ? "#6ee7b7" : "#fca5a5"}`,
-                                                    borderRadius: "6px", padding: "3px 10px", fontSize: "11px", fontWeight: 700,
+                                                    borderRadius: "6px",
+                                                    padding: "4px 10px",
+                                                    fontSize: "11px",
+                                                    fontWeight: 700,
+                                                    whiteSpace: "nowrap",
                                                 }}>
                                                     {isCredit ? "↑ Added" : "↓ Deducted"}
                                                 </span>
