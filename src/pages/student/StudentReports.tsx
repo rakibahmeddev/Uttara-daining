@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useAuth } from "../../context/AuthContext";
-import { getAllOrdersEnriched } from "../../services/db";
 import { format, subDays, startOfDay } from "date-fns";
 import { formatDateBD } from "../../utils/date";
 import { Wallet, UtensilsCrossed, ShoppingBag, ArrowDownLeft, ArrowUpRight } from "lucide-react";
@@ -82,20 +81,28 @@ export default function StudentReports() {
         (async () => {
             setLoading(true);
             try {
-                const [allOrders, txSnap, userSnap] = await Promise.all([
-                    getAllOrdersEnriched(),
+                const uid = currentUser.uid;
+                const [orderSnap, txSnap, userSnap] = await Promise.all([
+                    // Query orders directly for this user
                     getDocs(query(
-                        collection(db, "transactions"),
-                        where("userId", "==", currentUser.uid),
+                        collection(db, "orders"),
+                        where("userId", "==", uid),
                         orderBy("createdAt", "desc")
                     )),
-                    getDocs(query(collection(db, "users"), where("uid", "==", currentUser.uid))),
+                    // Query transactions for this user
+                    getDocs(query(
+                        collection(db, "transactions"),
+                        where("userId", "==", uid),
+                        orderBy("createdAt", "desc")
+                    )),
+                    // Query user doc for live balance
+                    getDocs(query(collection(db, "users"), where("uid", "==", uid))),
                 ]);
-                setOrders(allOrders.filter(o => o.userId === currentUser.uid));
+                setOrders(orderSnap.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
                 setTxs(txSnap.docs.map(d => ({ id: d.id, ...d.data() })));
                 if (!userSnap.empty) setUserData({ id: userSnap.docs[0].id, ...userSnap.docs[0].data() });
             } catch (e) {
-                console.error(e);
+                console.error("StudentReports fetch error:", e);
             } finally {
                 setLoading(false);
             }
