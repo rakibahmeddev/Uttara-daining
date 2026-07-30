@@ -134,7 +134,7 @@ export default function StudentReports() {
     );
 
     return (
-        <div style={{ paddingTop: "24px", paddingBottom: "48px", display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div style={{ paddingTop: "24px", paddingBottom: "48px", paddingLeft: "16px", paddingRight: "16px", display: "flex", flexDirection: "column", gap: "24px" }}>
 
             {/* ── Page Header ── */}
             <div style={{ marginBottom: "4px" }}>
@@ -174,7 +174,7 @@ export default function StudentReports() {
             </div>
 
             {/* ── Summary Cards ── */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <SummaryCard
                     icon={Wallet}
                     label="Current Balance"
